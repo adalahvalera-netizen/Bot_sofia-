@@ -1,9 +1,12 @@
 import os
 import telebot
-import requests
+from huggingface_hub import InferenceClient
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-API_KEY = "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"
+API_KEY = "hf_F0pCcJGOoKUkqTBhbCPiakSmkxP..."  # Tu token actual
+
+# Usamos este modelo que responde súper bien
+client = InferenceClient("meta-llama/Meta-Llama-3-8B-Instruct", token=API_KEY)
 bot = telebot.TeleBot(TOKEN)
 user_names = {}
 
@@ -24,23 +27,16 @@ def echo(message):
         return
     
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-        headers = {'Content-Type': 'application/json'}
-        data = {
-            "contents": [{
-                "parts": [{"text": texto}]
-            }]
-        }
-        
-        response = requests.post(url, json=data, headers=headers)
-        resultado = response.json()
-        
-        respuesta_ia = resultado['candidates'][0]['content']['parts'][0]['text']
+        response = client.chat_completion(
+            messages=[{"role": "user", "content": texto}],
+            max_tokens=500,
+            temperature=0.7,
+        )
+        respuesta_ia = response.choices[0].message.content
         bot.reply_to(message, respuesta_ia)
-        
     except Exception as e:
-        print(f"Error detallado: {e}")
-        bot.reply_to(message, f"Disculpa {user_names[uid]}, hubo un problema al procesar la respuesta.")
+        print(f"Error: {e}")
+        bot.reply_to(message, f"Disculpa {user_names[uid]}, hubo un error al procesar la respuesta.")
 
 print("Bot listo...")
 bot.infinity_polling()
