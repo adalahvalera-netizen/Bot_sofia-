@@ -1,3 +1,4 @@
+import os
 import google.generativeai as genai
 import telebot
 
@@ -7,7 +8,9 @@ GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LKasJ_7P_kHg"
 
 # Configurar la IA de Google Gemini
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel("gemini-pro")
+
+# Usar el modelo actual recomendado
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Inicializar el bot de Telegram
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
@@ -32,7 +35,7 @@ def handle_message(message):
     bot.reply_to(
         message,
         f"¡Vaya {message.from_user.first_name}! Ocurrió un pequeño error al"
-        " conectar con mi cerebro de IA. Revisa la conexión o la clave.",
+        f" conectar con mi cerebro de IA. Detalle: {e}",
     )
 
 
