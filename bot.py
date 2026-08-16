@@ -6,22 +6,9 @@ TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 GEMINI_API_KEY = "AQ.Ab8RN6LdVyO9hrXi1NlvAGDX9iPOd9n6Lk4dmfvaRNDDvY142A"  
 
 genai.configure(api_key=GEMINI_API_KEY)
-
-# Instrucción de sistema súper directa y fácil de procesar para la IA
-system_instruction = (
-    "Eres Sofía, una IA creada por Abdallah Sulbaran. "
-    "Tu estilo de respuesta es natural, amigable, claro y directo (como un chat personal). "
-    "Dominas con soltura: academia, matemáticas, gaming (Blood Strike), redes sociales (TikTok, WhatsApp), estilo de vida y BTS. "
-    "Adapta siempre tus respuestas al nombre de la persona con la que hablas."
-)
-
-# Configuramos el modelo con la instrucción integrada de forma nativa
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=system_instruction
-)
-
+model = genai.GenerativeModel("gemini-1.5-flash")
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
 user_names = {}
 
 @bot.message_handler(commands=["start"])
@@ -38,25 +25,29 @@ def handle_message(message):
     if texto.startswith("/"): 
         return
 
-    # Guardar el nombre del usuario
     if user_id not in user_names:
         user_names[user_id] = texto
-        bot.reply_to(message, f"¡Mucho gusto, {texto}! ¿De qué te gustaría hablar o en qué te ayudo hoy?")
+        bot.reply_to(message, f"¡Mucho gusto, {texto}! ¿En qué te puedo ayudar hoy?")
         return
 
-    # Detector rápido de imágenes
+    # Detector de imágenes
     if any(kw in texto.lower() for kw in ["dibuja", "crea una imagen", "generar una imagen", "haz una imagen"]):
         prompt = texto.replace(" ", "%20")
         bot.reply_to(message, f"¡Claro, {user_names[user_id]}! Aquí tienes tu imagen:\nhttps://image.pollinations.ai/prompt/{prompt}")
         return
 
-    # Generación limpia y guiada por el system_instruction
+    prompt_seguro = (
+        f"Estás hablando con {user_names[user_id]}. "
+        "Te llamas Sofía y fuiste desarrollada por Abdallah Sulbaran. "
+        "Eres experta en academia, matemáticas, gaming (Blood Strike), TikTok, WhatsApp, estilo de vida y BTS. "
+        "Responde de forma natural, amigable y experta a lo siguiente: " + texto
+    )
+
     try:
-        prompt_final = f"Usuario ({user_names[user_id]}): {texto}"
-        response = model.generate_content(prompt_final)
+        response = model.generate_content(prompt_seguro)
         bot.reply_to(message, response.text)
     except Exception as e:
-        print(f"Error: {e}")
-        bot.reply_to(message, f"Disculpa {user_names[user_id]}, tuve un pequeño parpadeo técnico. Escríbeme de nuevo.")
+        print(f"Error detectado: {e}")
+        bot.reply_to(message, f"Hola {user_names[user_id]}, recibí tu mensaje. ¿Podrías repetirlo?")
 
 bot.infinity_polling()
