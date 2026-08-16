@@ -3,9 +3,10 @@ import google.generativeai as genai
 import telebot
 
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
+# Tu clave actual de Google Cloud
 GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LkasJ_7P_kHg"
 
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+# Configuramos la autenticación para que la reconozca la librería oficial
 genai.configure(api_key=GOOGLE_API_KEY)
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
