@@ -5,8 +5,8 @@ import requests
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 API_KEY = "hf_F0pCcJGOoKUkqTBhbCPiakSmkxP..."  # Tu token actual
 
-# Usamos la API web directa de Hugging Face para evitar errores de librerías
-API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+# Usamos este modelo de Hugging Face que es sumamente ligero y responde al instante
+API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-2b-it"
 headers = {"Authorization": f"Bearer {API_KEY}"}
 
 bot = telebot.TeleBot(TOKEN)
@@ -31,33 +31,32 @@ def handle_message(message):
     if state["step"] == "waiting_name":
         state["name"] = texto
         state["step"] = "chat"
-        bot.reply_to(message, f"¡Mucho gusto, {texto}! ¿En qué te puedo ayudar hoy?")
+        bot.reply_to(message, f"¡Mucho gusto, {texto}! ¿De qué te gustaría hablar hoy?")
         return
     
     try:
-        # Petición directa a la IA
         payload = {
-            "inputs": f"Responde de forma amigable y útil: {texto}",
-            "parameters": {"max_new_tokens": 300, "temperature": 0.7}
+            "inputs": f"Usuario dice: {texto}. Responde de forma amigable.",
+            "parameters": {"max_new_tokens": 250, "temperature": 0.7}
         }
         
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=15)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=20)
         resultado = response.json()
         
         if isinstance(resultado, list) and len(resultado) > 0 and "generated_text" in resultado[0]:
             respuesta_ia = resultado[0]["generated_text"]
-            # Limpiamos el texto para que no repita el prompt inicial
-            if "Responde de forma amigable y útil:" in respuesta_ia:
-                respuesta_ia = respuesta_ia.split("Responde de forma amigable y útil:")[-1].strip()
+            # Limpiamos el texto para quedarnos solo con la respuesta de la IA
+            if "Responde de forma amigable." in respuesta_ia:
+                respuesta_ia = respuesta_ia.split("Responde de forma amigable.")[-1].strip()
         elif isinstance(resultado, dict) and "error" in resultado:
-            respuesta_ia = "¡Hola! Dame unos segundos mientras el modelo de IA despierta y vuelve a escribirme."
+            respuesta_ia = f"¡Vaya! El servidor de IA está calentando motores. Intenta enviarme el mensaje de nuevo, {state.get('name', 'amigo')}."
         else:
-            respuesta_ia = "¡Entendido! ¿Qué más te gustaría saber?"
+            respuesta_ia = "¡Qué interesante! Cuéntame más sobre eso."
 
         bot.reply_to(message, respuesta_ia)
     except Exception as e:
         print(f"Error: {e}")
-        bot.reply_to(message, "¡Hola! Estoy aquí. ¿De qué te gustaría hablar?")
+        bot.reply_to(message, "¡Ey, sigo aquí! Inténtalo otra vez.")
 
-print("Bot listo y conectado...")
+print("Bot listo y fluido...")
 bot.infinity_polling()
