@@ -1,11 +1,15 @@
 import os
-import requests
+import google.generativeai as genai
 import telebot
 
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LkasJ_7P_kHg"
 
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+genai.configure(api_key=GOOGLE_API_KEY)
+
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 @bot.message_handler(commands=["start", "help"])
 def send_welcome(message):
@@ -14,25 +18,9 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        headers = {"Content-Type": "application/json"}
-        data = {
-            "contents": [{
-                "parts": [{"text": message.text}]
-            }]
-        }
-        response = requests.post(url, headers=headers, json=data)
-        result = response.json()
-        
-        # Verificar si Google devolvió un error en lugar de candidatos
-        if "error" in result:
-            error_message = result["error"].get("message", "Error desconocido de la API")
-            bot.reply_to(message, f"Error de Google: {error_message}")
-        else:
-            reply_text = result["candidates"][0]["content"]["parts"][0]["text"]
-            bot.reply_to(message, reply_text)
-            
+        response = model.generate_content(message.text)
+        bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, f"Ocurrió un error interno: {e}")
+        bot.reply_to(message, f"Ocurrió un error: {e}")
 
 bot.infinity_polling()
