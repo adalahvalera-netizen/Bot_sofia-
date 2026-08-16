@@ -17,6 +17,17 @@ import openpyxl
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+# --- INSTRUCCIÓN DE SISTEMA ---
+SYSTEM_INSTRUCTION = """
+Eres Sofía, una asistente experta y apasionada en tres temas principales:
+1. BTS: Conoces toda su discografía, historia, datos curiosos de cada miembro y novedades.
+2. Anime: Eres una experta en cultura otaku, recomendaciones, análisis y géneros.
+3. Block Strike: Conoces estrategias, trucos, modos de juego y todo lo relacionado con este shooter.
+
+Cuando te pregunten sobre estos temas, responde con detalle, entusiasmo y autoridad. 
+Si preguntan por otros temas, responde amablemente, pero siempre intenta conectar o dirigir la conversación hacia tus áreas de especialidad si es posible.
+"""
+
 # --- HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF) ---
 
 def set_cell_background(cell, fill_color):
@@ -150,7 +161,7 @@ def generar_excel(nombre_archivo, datos):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con crucigramas, guiones de video y teatro, imágenes y documentos. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. Aquí estoy lista con crucigramas, guiones, imágenes y toda la información sobre BTS, Anime y Block Strike. ¿Qué hacemos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -160,7 +171,7 @@ def handle_conversation(message):
     try:
         # 1. SALUDOS Y CONVERSACIÓN
         if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
-            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes o guiones.")
+            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes, guiones o hablar de BTS, Anime y Block Strike.")
             return
 
         # RECONOCIMIENTO DEL CREADOR
@@ -168,7 +179,42 @@ def handle_conversation(message):
             bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
-        # 2. GENERADOR DE GUIONES (OBRAS DE TEATRO, TIKTOK, VIDEOS)
+        # 2. SECCIÓN ESPECIALIZADA: BTS, ANIME Y BLOCK STRIKE
+        elif any(w in user_text for w in ["bts", "army", "kpop", "rm", "jin", "suga", "jhope", "jimin", "taehyung", "v", "jungkook"]):
+            respuesta = (
+                "💜 **¡SECCIÓN BTS (ARMY)!** 💜\n\n"
+                "¡Soy una experta en BTS! Conozco toda su discografía (desde *2 Cool 4 Skool* hasta *Proof*), "
+                "sus eras, récords en Billboard, detalles del Bangtan Universe y las personalidades de Namjoon, Jin, Yoongi, Hobi, Jimin, Tae y Jungkook.\n\n"
+                "¿Qué quieres saber hoy? ¿Recomendaciones de canciones, historia de un álbum o datos curiosos?"
+            )
+            bot.reply_to(message, respuesta)
+            return
+
+        elif any(w in user_text for w in ["anime", "otaku", "manga", "shonen", "seinen", "snk", "naruto", "one piece", "jujutsu", "demon slayer"]):
+            respuesta = (
+                "⛩️ **¡MODO OTAKU / ANIME ACTIVADO!** ⛩️\n\n"
+                "¡Me encanta el anime! Puedo ayudarte con:\n"
+                "• **Recomendaciones:** Según tu género favorito (Shonen, Seinen, Romance, Isekai).\n"
+                "• **Análisis:** Trama, arcos de personajes y calidad de animación.\n"
+                "• **Fichas:** Información de tus series y mangas preferidos.\n\n"
+                "¿De qué anime quieres hablar o qué recomendación necesitas hoy?"
+            )
+            bot.reply_to(message, respuesta)
+            return
+
+        elif any(w in user_text for w in ["block strike", "blockstrike", "shooter", "armas bs", "modos de juego bs"]):
+            respuesta = (
+                "🎮 **¡GUÍA DE BLOCK STRIKE!** 🎮\n\n"
+                "¡Domino totalmente las tácticas de **Block Strike**!\n"
+                "• **Estrategias:** Mejores posiciones y control de miras en los mapas.\n"
+                "• **Modos de Juego:** Team Deathmatch, Zombie Survival, Bunny Hop, Bomb, etc.\n"
+                "• **Equipamiento:** Rendimiento de armas, skins y movilidad.\n\n"
+                "¿Necesitas trucos para mejorar tu puntería o tácticas para un modo en específico?"
+            )
+            bot.reply_to(message, respuesta)
+            return
+
+        # 3. GENERADOR DE GUIONES (OBRAS DE TEATRO, TIKTOK, VIDEOS)
         elif any(w in user_text for w in ["guion", "guión", "obra", "teatro", "escena", "video", "tiktok", "reel", "promocional"]):
             topic = user_text
             for palabra in ["crea", "un", "una", "de", "para", "sobre", "guion", "guión", "obra", "teatro", "corta", "corte", "video", "tiktok", "reel", "promocional", "por", "favor"]:
@@ -210,7 +256,7 @@ def handle_conversation(message):
             bot.reply_to(message, guion)
             return
 
-        # 3. HERRAMIENTAS DE ARCHIVOS E IMÁGENES
+        # 4. HERRAMIENTAS DE ARCHIVOS E IMÁGENES
         elif "crucigrama" in user_text:
             clean_tema = user_text
             for palabra in ["crea", "un", "de", "en", "word", "crucigrama", "para", "por", "favor"]:
@@ -263,12 +309,12 @@ def handle_conversation(message):
                 bot.reply_to(message, "Error al generar la imagen.")
             return
 
-        # 4. RESPUESTA DIRECTA EN TEXTO
+        # 5. RESPUESTA DIRECTA EN TEXTO
         else:
-            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus guías o proyectos. ¿Quieres que generemos un archivo Word, Excel, PDF o un guion sobre esto?")
+            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus proyectos. Recuerda que también me especializo en **BTS, Anime y Block Strike**, ¡o puedo crearte un Word, Excel, PDF o guion sobre esto!")
 
     except Exception as e:
         bot.reply_to(message, "Hubo un pequeño detalle al procesar la solicitud, intenta nuevamente.")
 
 bot.infinity_polling()
-                                          
+        
