@@ -12,10 +12,7 @@ import openpyxl
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# Memoria temporal para el modo tutor paso a paso (como arreglar una PC, etc.)
-user_states = {}
-
-# --- FUNCIONES DE ARCHIVOS (Tus herramientas avanzadas) ---
+# --- HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF, Imágenes) ---
 
 def generar_pdf_requisitos_completos(nombre_archivo):
     c = canvas.Canvas(nombre_archivo, pagesize=letter)
@@ -40,7 +37,6 @@ def generar_pdf_requisitos_completos(nombre_archivo):
     for req in requisitos:
         c.drawString(1.2 * inch, y_pos, req)
         y_pos -= 0.25 * inch
-        
     c.save()
 
 def generar_word_crucigrama(nombre_archivo, titulo, crucigrama_data):
@@ -64,49 +60,41 @@ def generar_excel(nombre_archivo, datos):
     wb.save(nombre_archivo)
 
 
-# --- MANEJADOR DE CONVERSACIÓN Y PERSONALIDAD ESTILO GEMINI ---
+# --- MANEJADOR DE CHAT Y CONVERSACIÓN NATURAL ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, f"¡Hola, {message.from_user.first_name}! 👋 Soy **Sofía**, tu asistente virtual. Estoy aquí para conversar contigo de forma natural, ayudarte con tus dudas paso a paso, explicarte temas complejos o crearte archivos (Word, Excel, PDF, imágenes). ¿De qué te gustaría hablar o qué tarea resolvemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista para charlar como amigos, explicarte cualquier tema platicando, hacerte resúmenes, análisis, mapas conceptuales en texto, o crearte documentos (Word, Excel, PDF) e imágenes. ¿Qué hacemos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
-    user_id = message.chat.id
     user_text = message.text.lower()
+    original_text = message.text
 
     try:
-        # 1. MODO TUTOR PASO A PASO (Ej: Reparar computadora o guías complejas)
-        if "arreglar" in user_text and ("computadora" in user_text or "pc" in user_text or "laptop" in user_text):
-            user_states[user_id] = {"paso": 1, "tema": "reparacion_pc"}
-            bot.reply_to(message, "¡Claro que sí! Con gusto te acompaño paso a paso para revisar tu computadora. Para empezar, cuéntame: ¿Qué problema presenta exactamente? (Por ejemplo: ¿No enciende, la pantalla se pone negra, está muy lenta o hace algún ruido extraño?)")
+        # 1. SALUDOS Y CONVERSACIÓN AMIGABLE
+        if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
+            respuestas_hola = [
+                "¡Hola! ¿Cómo estás? Yo por aquí todo bien, lista para ayudarte. ¿Y tú qué tal, cómo va tu día?",
+                "¡Ey, hola! Qué bueno leerte. ¿De qué te gustaría hablar hoy o qué tarea resolvemos?",
+                "¡Hola, hola! ¿Cómo va todo por allá? Cuéntame qué planes tienes o en qué te echo una mano."
+            ]
+            bot.reply_to(message, random.choice(respuestas_hola))
             return
 
-        # Continuación del flujo paso a paso si el usuario está en medio de una tutoría
-        if user_id in user_states and user_states[user_id]["tema"] == "reparacion_pc":
-            paso = user_states[user_id]["paso"]
-            if paso == 1:
-            # Puedes usar tu consulta o continuar la guía
-                bot.reply_to(message, "Comprendo el síntoma. Antes de pasar a revisar hardware interno, ¿has verificado que los cables de corriente estén firmemente conectados y que la regleta o tomacorriente funcione con otro aparato?")
-                user_states[user_id]["paso"] = 2
-            elif paso == 2:
-                bot.reply_to(message, "Perfecto. Si ya descartamos la energía básica, el siguiente paso es un reinicio forzado o revisar si los ventiladores giran al presionar el botón de encendido. Dime qué notas al intentar encenderla ahora.")
-                user_states[user_id]["paso"] = 3
-            else:
-                bot.reply_to(message, "¡Muy bien! Vamos avanzando con calma. Si prefieres que hagamos otra cosa o consultemos un documento, solo dímelo.")
-                user_states.pop(user_id, None) # Limpiamos estado
+        elif any(w in user_text for w in ["como estas", "que haces", "como te encuentras", "y tu que tal"]):
+            bot.reply_to(message, "¡Yo me encuentro excelente, gracias por preguntar! Aquí activa y procesando información para lo que necesites. ¿Y tú, qué cuentas de nuevo?")
             return
 
-        # 2. CONVERSACIÓN NATURAL (Saludos y charlas amigables)
-        if any(saludo in user_text for saludo in ["hola", "buenos días", "buenas tardes", "qué tal", "cómo estás"]):
-            bot.reply_to(message, "¡Hola! Estoy excelente, procesando información y lista para ayudarte en lo que necesites. ¿Y tú qué tal? ¿Cómo va tu día?")
+        elif "que puedes hacer" in user_text or "ayuda" in user_text:
+            bot.reply_to(message, "¡Puedo hacer de todo! Te explico cualquier tema platicando (sin sonar a diccionario), te hago resúmenes, análisis, mapas conceptuales estructurados en texto, y también te creo crucigramas en Word, tablas en Excel, PDFs o dibujos con IA. ¡Pídeme lo que quieras!")
             return
 
-        # 3. HERRAMIENTAS Y COMANDOS (Integrados con naturalidad)
+        # 2. HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF, Imágenes)
         if "crucigrama" in user_text and "word" in user_text:
             tema = user_text.replace("crucigrama", "").replace("word", "").replace("crear", "").strip()
             if not tema: tema = "General"
-            bot.reply_to(message, f"🧩 ¡Me parece una gran idea! Estoy redactando un crucigrama de '{tema}' con sus pistas y soluciones en un documento de Word para ti. Dame un segundito...")
+            bot.reply_to(message, f"🧩 ¡Claro que sí! Estoy armando un crucigrama de '{tema}' con sus pistas y soluciones en Word...")
             
             simulated_data = {
                 'pistas': [
@@ -122,56 +110,81 @@ def handle_conversation(message):
             generar_word_crucigrama(nombre_doc, f"Crucigrama: {tema.upper()}", simulated_data)
             
             with open(nombre_doc, "rb") as archivo:
-                bot.send_document(message.chat.id, archivo, caption="📄 ¡Listo! Aquí tienes tu archivo de Word con el crucigrama preparado.")
+                bot.send_document(message.chat.id, archivo, caption="📄 ¡Listo! Aquí tienes tu archivo de Word.")
             os.remove(nombre_doc)
             return
 
         elif "requisitos" in user_text or "ficha tecnica" in user_text:
-            bot.reply_to(message, "📋 Claro que sí, preparé un archivo PDF con la guía de requisitos técnicos y deportivos detallada. Aquí te lo comparto:")
+            bot.reply_to(message, "📋 Aquí tienes el manual completo de requisitos técnicos y deportivos en PDF:")
             nombre_pdf = "requisitos_sofia.pdf"
             generar_pdf_requisitos_completos(nombre_pdf)
             with open(nombre_pdf, "rb") as archivo:
-                bot.send_document(message.chat.id, archivo, caption="✨ Tu manual técnico y deportivo en PDF.")
+                bot.send_document(message.chat.id, archivo, caption="✨ Tu manual en PDF.")
             os.remove(nombre_pdf)
             return
 
         elif "excel" in user_text or "tabla" in user_text:
-            bot.reply_to(message, "📊 ¡Claro! Voy a armarte esa tabla en Excel de inmediato.")
+            bot.reply_to(message, "📊 ¡Perfecto! Creando tu tabla en Excel de inmediato...")
             nombre_excel = "tabla_notas.xlsx"
-            datos = [["Materia / Área", "Estado", "Observaciones"], ["Educación Física", "Aprobado", "Excelente desempeño"], ["Tecnología / IA", "En marcha", "Creando funciones avanzadas"]]
+            datos = [["Materia / Área", "Estado", "Observaciones"], ["Educación Física", "Aprobado", "Excelente desempeño"], ["Funciones", "Activas", "Resúmenes y análisis listos"]]
             generar_excel(nombre_excel, datos)
             with open(nombre_excel, "rb") as archivo:
-                bot.send_document(message.chat.id, archivo, caption="📊 Aquí tienes tu archivo de Excel listo.")
+                bot.send_document(message.chat.id, archivo, caption="📊 Aquí tienes tu Excel listo.")
             os.remove(nombre_excel)
             return
 
         elif "imagen de" in user_text or "crea una imagen" in user_text:
             prompt = user_text.replace("imagen de", "").replace("crea una imagen de", "").strip()
             if not prompt:
-                bot.reply_to(message, "Claro, dime qué te gustaría que dibuje. Por ejemplo: *imagen de un paisaje futurista*.")
+                bot.reply_to(message, "Dime qué dibujo quieres que haga. Por ejemplo: *imagen de un paisaje futurista*.")
                 return
-            bot.reply_to(message, f"🎨 ¡Manos a la obra! Estoy generando tu imagen de '{prompt}'...")
+            bot.reply_to(message, f"🎨 ¡Manos a la obra! Dibujando '{prompt}'...")
             try:
                 image_url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}"
-                bot.send_photo(message.chat.id, image_url, caption=f"✨ Aquí tienes el resultado para: {prompt}")
+                bot.send_photo(message.chat.id, image_url, caption=f"✨ Resultado para: {prompt}")
             except:
-                bot.reply_to(message, "Vaya, tuve un pequeño inconveniente técnico generando la imagen, pero podemos intentarlo de nuevo.")
+                bot.reply_to(message, "Vaya, tuve un pequeño fallo creando la imagen, pero inténtalo de nuevo.")
             return
 
-        # 4. RESPUESTA INTELIGENTE ABIERTA (Respaldo web si pregunta cualquier cosa)
+        # 3. EXPLICACIONES, RESÚMENES, MAPAS CONCEPTUALES Y ANÁLISIS PLATICADO
         else:
-            api_url = f"https://api.duckduckgo.com/?q={requests.utils.quote(message.text)}&format=json"
-            res = requests.get(api_url).json()
-            abstract = res.get("AbstractText")
+            query = user_text
+            # Limpiamos un poco el texto para buscar en Wikipedia de forma efectiva
+            limpio_query = user_text.replace("investigame", "").replace("investiga", "").replace("hazme un resumen de", "").replace("resumen de", "").replace("mapa conceptual de", "").replace("analiza", "").replace("quien fue", "").replace("que son los", "").replace("que es la", "").replace("que es el", "").strip()
+            if not limpio_query: limpio_query = original_text
+
+            api_url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(limpio_query)}"
+            response = requests.get(api_url)
             
-            if abstract:
-                bot.reply_to(message, f"Estuve investigando sobre eso y te cuento: {abstract}")
-            else:
-                bot.reply_to(message, f"Es un tema muy interesante lo que mencionas sobre '{message.text}'. Cuéntame más detalles o dime si prefieres que redactemos un documento, armemos un Excel, un crucigrama o busquemos más datos al respecto.")
+            if response.status_code == 200:
+                data = response.json()
+                extracto = data.get("extract")
+                titulo_articulo = data.get("title", original_text)
+                
+                if extracto:
+                    # Si pide mapa conceptual o resumen, se lo estructuramos genial
+                    if "mapa conceptual" in user_text:
+                        respuesta = f"🗺️ **Mapa Conceptual / Estructura de {titulo_articulo}:**\n\n" \
+                                    f"• **Concepto Principal:** {titulo_articulo}\n" \
+                                    f"• **¿Qué es?:** {extracto[:250]}...\n" \
+                                    f"• **Puntos Clave:**\n" \
+                                    f"  - Origen / Contexto principal.\n" \
+                                    f"  - Impacto, características o funciones notables.\n" \
+                                    f"  - Legado o conclusión general."
+                    elif "resumen" in user_text:
+                        respuesta = f"📝 **Resumen sobre {titulo_articulo}:**\n\nPara que lo entiendas súper claro y sin enredos: {extracto}"
+                    else:
+                        # Explicación platicada y natural (lejos de ser un diccionario aburrido)
+                        respuesta = f"¡Claro que sí! Te cuento sobre **{titulo_articulo}**:\n\n{extracto}\n\n¿Te queda alguna duda o quieres que profundicemos en algún detalle en específico?"
+                    
+                    bot.reply_to(message, respuesta)
+                    return
+
+            # Si no da con Wikipedia directa, le damos una respuesta conversacional abierta
+            bot.reply_to(message, f"¡Qué temazo ese de '{original_text}'! Es súper interesante. Cuéntame qué enfoque le quieres dar (un análisis, un resumen, o estructurarlo por puntos) y te ayudo a armarlo de una vez.")
 
     except Exception as e:
-        bot.reply_to(message, "¡Vaya! Ocurrió un pequeño detalle técnico, pero mis sistemas siguen activos. ¿Qué hacemos ahora?")
+        bot.reply_to(message, "¡Vaya! Ocurrió un pequeño detalle técnico, pero aquí sigo firme contigo. ¿Qué hacemos ahora?")
 
 bot.infinity_polling()
-               
-            
+        
