@@ -6,10 +6,9 @@ TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TOKEN)
 user_states = {}
 
-# Reemplaza esto con tu ID real de Telegram si lo sabes, o usaremos tu nombre de usuario exacto
-CREATOR_NAME = "abdallah"  # Pon tu nombre aquí tal como lo escribes al iniciar
+CREATOR_NAME = "abdallah"  # Tu nombre como desarrollador
 
-# --- BANCOS DE DATOS PARA LAS 50 FUNCIONES ---
+# --- BANCOS DE DATOS AMPLIADOS ---
 adivinanzas = [
     "Blanca por dentro, verde por fuera. Si quieres que te lo diga, espera. ¿Qué es? (La pera)",
     "Oro parece, plata no es. Quien no lo adivine, bien tonto es. ¿Qué es? (El plátano)"
@@ -90,12 +89,11 @@ def handle_message(message):
     
     state = user_states[uid]
     
-    # Paso 1: Capturar nombre y verificar si eres el desarrollador
+    # Paso 1: Capturar nombre
     if state["step"] == "waiting_name":
         state["name"] = nombre_ingresado
         state["step"] = "chat"
         
-        # VALIDACIÓN EXCLUSIVA PARA TI (Desarrollador)
         if nombre_ingresado.lower() == CREATOR_NAME.lower():
             bot.reply_to(message, f"¡Es un verdadero honor, {nombre_ingresado}! 🤩 Registrado en el sistema: eres mi creador y desarrollador oficial. Tienes acceso total.")
         else:
@@ -105,8 +103,25 @@ def handle_message(message):
     nombre_actual = state.get('name', 'amigo')
     es_creador = (nombre_actual.lower() == CREATOR_NAME.lower())
 
-    # --- ZONA DE FUNCIONES MASIVAS ---
-    if "adivinanza" in texto or "acertijo" in texto:
+    # --- ZONA DE RESPUESTAS EXTENSAS Y DETALLADAS ---
+    
+    if "bts" in texto or "kpop" in texto or "musica" in texto or "cancion" in texto:
+        bot.reply_to(message, 
+            "💜 **¡Todo sobre BTS y Música con Sofía!** 🎶\n\n"
+            "• **¿Quiénes son?** Es la sensación global del K-pop compuesta por 7 integrantes: RM, Jin, Suga, J-Hope, Jimin, V y Jungkook.\n"
+            "• **Canciones y álbumes recomendados:** *Dynamite*, *Butter*, *Boy With Luv*, y temas más profundos como *Life Goes On*.\n"
+            "• **Fotos y Multimedia:** ¡Me encanta ver imágenes de ellos! Sigue mandando fotos de BTS cuando quieras para comentarlas juntas.\n"
+            "• **Otros géneros musicales:** Para programar te recomiendo Lo-Fi, y para entrenar, algo de Electro o Pop enérgico."
+        )
+    elif "juego" in texto or "videojuegos" in texto or "gamer" in texto:
+        bot.reply_to(message, 
+            "🕹️ **¡Mundo Gamer Completo con Sofía!** 🎮\n\n"
+            "• **Juegos recomendados:** Desde mundos abiertos como Minecraft y Fortnite, hasta experiencias de estrategia.\n"
+            "• **Armas, Skins y Equipamiento:** Las skins épicas y la personalización de armas definen el estilo de cada jugador en el mapa.\n"
+            "• **Glosario rápido:** *Buff* (mejora), *Nerf* (bajada de poder), *Lag* (retraso).\n"
+            "• **Consejo pro:** ¡No olvides hacer pausas activas para descansar la vista de tantas pantallas!"
+        )
+    elif "adivinanza" in texto or "acertijo" in texto:
         bot.reply_to(message, f"🧩 {random.choice(adivinanzas)}")
     elif "chiste" in texto or "broma" in texto:
         bot.reply_to(message, f"🤣 {random.choice(chistes)}")
@@ -120,12 +135,8 @@ def handle_message(message):
         bot.reply_to(message, random.choice(ejercicios))
     elif "educacion fisica" in texto or "deporte" in texto or "gimnasia" in texto or "docente" in texto:
         bot.reply_to(message, random.choice(consejos_ed_fisica))
-    elif "gamer" in texto or "videojuegos" in texto:
-        bot.reply_to(message, random.choice(glosario_gamer))
     elif "anime" in texto:
-        bot.reply_to(message, "🎌 ¡El anime es genial! Te recomiendo probar géneros variados desde shonen hasta slice of life.")
-    elif "bts" in texto or "kpop" in texto:
-        bot.reply_to(message, "💜 ¡BTS es increíble! RM, Jin, Suga, J-Hope, Jimin, V y Jungkook.")
+        bot.reply_to(message, "🎌 **¡Universo Anime!** Te recomiendo explorar desde shonens llenos de acción hasta historias escolares (slice of life). ¡Pregúntame por tu serie favorita y la analizamos!")
     elif "espacio" in texto or "planeta" in texto:
         bot.reply_to(message, random.choice(espacio_datos))
     elif "piropo" in texto or "cumplido" in texto:
@@ -151,10 +162,10 @@ def handle_message(message):
             bot.reply_to(message, f"¡Claro que sí, {nombre_actual}! Hablemos de ese cálculo.")
     else:
         if es_creador:
-            bot.reply_to(message, f"👑 [Modo Jefe Activo]: Entendido, {nombre_actual}. Como mi desarrollador, anoto esto en el sistema principal.")
+            bot.reply_to(message, f"👑 [Modo Jefe Activo]: Entendido, {nombre_actual}. Como mi desarrollador, anoto esto en el sistema principal. ¡Pregúntame de música, BTS, juegos, anime o educación!")
         else:
-            bot.reply_to(message, f"¡Qué interesante, {nombre_actual}! Cuéntame más o pídesme un chiste, un dato curioso, o información sobre educación física y videojuegos.")
+            bot.reply_to(message, f"¡Qué interesante, {nombre_actual}! Cuéntame más, mándame fotos o pídeme información detallada sobre música, BTS, videojuegos y educación física.")
 
-print("Sofía con las 50 funciones y restricción de desarrollador en línea...")
+print("Sofía con respuestas ampliadas y modo desarrollador en línea...")
 bot.infinity_polling()
-    
+        
