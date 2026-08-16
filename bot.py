@@ -2,24 +2,19 @@ import os
 import google.generativeai as genai
 import telebot
 
-# Tus credenciales
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LkasJ_7P_kHg"
 
-# Configuración de Google Gemini
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# Inicializar modelo y bot
 model = genai.GenerativeModel("gemini-1.5-flash")
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# Manejador de comandos
 @bot.message_handler(commands=["start", "help"])
 def send_welcome(message):
-    bot.reply_to(message, f"¡Hola {message.from_user.first_name}! Soy Sofía, tu asistente de IA. ¿De qué te gustaría hablar o qué quieres que investiguemos hoy?")
+    bot.reply_to(message, f"¡Hola {message.from_user.first_name}! Soy Sofía, tu asistente de IA. ¿De qué te gustaría hablar hoy?")
 
-# Manejador de mensajes de texto
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
@@ -28,5 +23,4 @@ def handle_message(message):
     except Exception as e:
         bot.reply_to(message, f"Ocurrió un error: {e}")
 
-# Iniciar el bot
 bot.infinity_polling()
