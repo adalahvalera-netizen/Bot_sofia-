@@ -11,27 +11,32 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
-        # Usamos una API pública gratuita que responde sin claves de Google
-        url = f"https://api.duckduckgo.com/?q={requests.utils.quote(message.text)}&format=json"
-        response = requests.get(url)
+        # Usamos un servicio público de chat gratuito
+        url = "https://api.duckduckgo.com/"
+        params = {
+            "q": message.text,
+            "format": "json",
+            "no_html": "1",
+            "skip_disambig": "1"
+        }
+        response = requests.get(url, params=params)
         data = response.json()
         
-        # Buscamos una respuesta resumida
-        answer = data.get("AbstractText")
-        if not answer:
-            # Si no hay resumen directo, buscamos en los temas relacionados
-            topics = data.get("RelatedTopics", [])
-            for topic in topics:
+        # Obtenemos una respuesta más limpia o directa
+        answer = data.get("AbstractText") or data.get("Answer")
+        
+        if not answer and data.get("RelatedTopics"):
+            for topic in data["RelatedTopics"]:
                 if "Text" in topic:
                     answer = topic["Text"]
                     break
-        
+                    
         if answer:
             bot.reply_to(message, answer)
         else:
-            bot.reply_to(message, "¡Hola! Entendido sobre tu mensaje. ¿Te puedo ayudar con algo más específico?")
+            bot.reply_to(message, f"Entendido, {message.from_user.first_name}. ¿Podrías darme más detalles sobre lo que me comentas?")
             
     except Exception as e:
-        bot.reply_to(message, f"Ocurrió un error al procesar tu solicitud: {e}")
+        bot.reply_to(message, f"Ocurrió un error: {e}")
 
 bot.infinity_polling()
