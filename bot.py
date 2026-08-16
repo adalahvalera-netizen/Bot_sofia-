@@ -3,8 +3,8 @@ import telebot
 import google.generativeai as genai
 
 # Obtenemos las variables de entorno que guardamos en Railway
-TELEGRAM_TOKEN = os.environ.get("8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I")
-GEMINI_API_KEY = os.environ.get("AQ.Ab8RN6LdVyO9hrXi1NlvAGDX9iPOd9n6Lk4dmfvaRNDDvY142A")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # Configuramos la IA de Gemini con el modelo actual y rápido
 genai.configure(api_key=GEMINI_API_KEY)
@@ -45,4 +45,3 @@ def handle_message(message):
 # Ejecutamos el bot
 print("Bot iniciado correctamente...")
 bot.infinity_polling()
-
