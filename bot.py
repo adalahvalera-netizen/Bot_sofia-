@@ -28,14 +28,12 @@ def set_cell_background(cell, fill_color):
 def generar_word_crucigrama(nombre_archivo, tema):
     doc = Document()
     
-    # Título principal
     h = doc.add_heading(f'CRUCIGRAMA: {tema.upper()}', level=0)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
     doc.add_paragraph("Instrucciones: Completa las casillas correspondientes a cada pista horizontal y vertical.")
     doc.add_paragraph()
 
-    # Selección de datos según el tema solicitado
     if "animal" in tema.lower():
         pistas_h = [
             "1. Felino considerado el rey de la selva. (LEON)",
@@ -74,7 +72,6 @@ def generar_word_crucigrama(nombre_archivo, tema):
             ["#", "#", "#", "#", "O", "#", "#", "#"]
         ]
 
-    # --- SECCIÓN: CUADRÍCULA DEL CRUCIGRAMA ---
     doc.add_heading('Cuadrícula del Crucigrama:', level=1)
     
     filas = len(grid)
@@ -93,23 +90,18 @@ def generar_word_crucigrama(nombre_archivo, tema):
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             
             if val == "#":
-                # Celda bloqueada (bloque negro)
                 set_cell_background(cell, "000000")
             else:
-                # Celda jugable (blanca con borde)
                 set_cell_background(cell, "FFFFFF")
-                # Si la celda indica inicio de palabra con número, lo mostramos en pequeño
                 if val.isdigit():
                     run = p.add_run(val)
                     run.font.size = Pt(8)
                     run.font.bold = True
                 else:
-                    # En la cuadrícula para resolver dejamos el espacio en blanco
                     p.text = ""
 
     doc.add_paragraph()
     
-    # --- SECCIÓN: PISTAS ---
     doc.add_heading('Pistas Horizontales:', level=2)
     for p in pistas_h:
         doc.add_paragraph(p, style='List Bullet')
@@ -158,7 +150,7 @@ def generar_excel(nombre_archivo, datos):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con crucigramas con cuadrícula gráfica, imágenes y documentos. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con crucigramas, guiones de video, imágenes y documentos. ¿Qué hacemos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -168,16 +160,41 @@ def handle_conversation(message):
     try:
         # 1. SALUDOS Y CONVERSACIÓN
         if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
-            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos o imágenes.")
+            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes o guiones de video.")
             return
 
-        elif "desarrollador" in user_text or "quien te creo" in user_text or "quien soy yo" in user_text:
-            bot.reply_to(message, "¡Hola Abdallah! Fuiste tú quien me programó en GitHub. 😎")
+        # RECONOCIMIENTO DEL CREADOR
+        elif any(w in user_text for w in ["desarrollador", "quien te creo", "quién te creó", "quien soy yo", "quién soy yo", "quien me creo", "quién me creó"]):
+            bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
-        # 2. HERRAMIENTA DE CRUCIGRAMA EN WORD CON CUADRÍCULA
+        # 2. NUEVO COMANDO: CREACIÓN DE GUIONES PARA VIDEOS (TIKTOK / REELS)
+        elif any(w in user_text for w in ["video", "tiktok", "reel", "promocional", "redes sociales"]):
+            topic = user_text
+            for palabra in ["crea", "un", "de", "para", "video", "tiktok", "reel", "promocional", "redes", "sociales", "por", "favor"]:
+                topic = topic.replace(palabra, "")
+            topic = topic.strip().capitalize()
+            if not topic: topic = "Tu Producto o Tema"
+
+            guion = (
+                f"🎬 **ESTRATEGIA Y GUION DE VIDEO: {topic.upper()}**\n\n"
+                f"⏱️ **00:00 - 00:03 (El Gancho):**\n"
+                f"• **Visual:** Muestra una toma dinámica o la foto principal de {topic}.\n"
+                f"• **Texto en pantalla:** '¡Lo que no sabías sobre {topic}!' 🚀\n\n"
+                f"⏱️ **00:03 - 00:10 (Contenido / Beneficios):**\n"
+                f"• **Visual:** Cambio rápido de toma mostrando los detalles.\n"
+                f"• **Voz en off:** Menciona los 2 aspectos más llamativos que resuelven una duda o necesidad.\n\n"
+                f"⏱️ **00:10 - 00:15 (Llamado a la Acción):**\n"
+                f"• **Visual:** Muestra tu logo o contacto.\n"
+                f"• **Voz en off:** '¡Comenta o síguenos para más detalles!'\n\n"
+                f"🎵 **Música sugerida:** Audio en tendencia de ritmo alegre/moderno.\n"
+                f"🏷️ **Hashtags:** #{topic.replace(' ', '')} #Viral #RedesSociales #Ecuador"
+            )
+            bot.reply_to(message, guion)
+            return
+
+        # 3. HERRAMIENTAS DE ARCHIVOS E IMÁGENES
         elif "crucigrama" in user_text:
-            # Limpieza del término
             clean_tema = user_text
             for palabra in ["crea", "un", "de", "en", "word", "crucigrama", "para", "por", "favor"]:
                 clean_tema = clean_tema.replace(palabra, "")
@@ -229,12 +246,12 @@ def handle_conversation(message):
                 bot.reply_to(message, "Error al generar la imagen.")
             return
 
-        # 3. RESPUESTA DIRECTA
+        # 4. RESPUESTA DIRECTA EN TEXTO
         else:
-            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus guías o proyectos. ¿Quieres que generemos un archivo Word, Excel o PDF sobre esto?")
+            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus guías o proyectos. ¿Quieres que generemos un archivo Word, Excel, PDF o un guion de video promocional sobre esto?")
 
     except Exception as e:
         bot.reply_to(message, "Hubo un pequeño detalle al procesar la solicitud, intenta nuevamente.")
 
 bot.infinity_polling()
-        
+            
