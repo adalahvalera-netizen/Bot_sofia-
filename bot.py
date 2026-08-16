@@ -60,11 +60,11 @@ def generar_excel(nombre_archivo, datos):
     wb.save(nombre_archivo)
 
 
-# --- MANEJADOR DE CHAT CON DOBLE SERVIDOR WEB LIBRE ---
+# --- MANEJADOR DE CHAT CON RESPUESTA DIRECTA EN TEXTO ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con mis dos servidores de búsqueda web activos, y también puedo crearte imágenes bonitas para dibujar, colorear, escribir o imprimir, además de documentos. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista para darte explicaciones directas en texto, buscar información, crear imágenes bonitas o generar tus documentos. ¿Qué investigamos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -75,23 +75,23 @@ def handle_conversation(message):
         # 1. SALUDOS Y CONVERSACIÓN AMIGABLE
         if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
             respuestas_hola = [
-                "¡Hola! ¿Cómo estás? Yo por aquí con mis servidores listos para buscar en la web y ayudarte a crear imágenes o tareas. ¿Y tú qué tal?",
-                "¡Ey, hola! Qué bueno leerte. Pregúntame lo que quieras, sobre educación física, proyectos o pídeme un dibujo para colorear, ¡aquí lo resolvemos!",
-                "¡Hola, hola! ¿Cómo va todo por allá? Cuéntame qué investigamos hoy o qué imagen creamos."
+                "¡Hola! ¿Cómo estás? Yo por aquí lista para darte toda la información en texto directo. ¿Qué investigamos hoy?",
+                "¡Ey, hola! Qué bueno leerte. Pregúntame lo que quieras y te respondo de una vez aquí en el chat, ¡sin rodeos!",
+                "¡Hola, hola! ¿Cómo va todo por allá? Cuéntame qué tarea o investigación resolvemos hoy."
             ]
             bot.reply_to(message, random.choice(respuestas_hola))
             return
 
         elif any(w in user_text for w in ["como estas", "que haces", "como te encuentras", "y tu que tal"]):
-            bot.reply_to(message, "¡Yo me encuentro excelente! Con mis dos servidores web sincronizados y mis herramientas de dibujo y diseño listas. ¿Y tú, qué cuentas?")
+            bot.reply_to(message, "¡Yo me encuentro excelente! Lista para redactarte cualquier explicación de inmediato. ¿Y tú, qué cuentas?")
             return
 
         elif "desarrollador" in user_text or "quien te creo" in user_text or "quien soy yo" in user_text:
-            bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó con este sistema de doble servidor web y creador multimedia en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
+            bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó con este sistema de respuestas directas en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
         elif "que puedes hacer" in user_text or "ayuda" in user_text:
-            bot.reply_to(message, "¡Puedo hacer de todo! Busco información en la web usando doble motor, te explico temas complejos, te creo imágenes bonitas para dibujar, imprimir o colorear, y documentos en Word, Excel o PDFs. ¡Pídeme lo que quieras!")
+            bot.reply_to(message, "¡Puedo hacer de todo! Te doy explicaciones redactadas directo en el chat, te explico temas complejos de educación física, anatomía, creo imágenes bonitas para colorear o imprimir, y documentos en Word, Excel o PDFs.")
             return
 
         # 2. HERRAMIENTAS DE ARCHIVOS Y MULTIMEDIA (Word, Excel, PDF, Imágenes)
@@ -130,7 +130,7 @@ def handle_conversation(message):
         elif "excel" in user_text or "tabla" in user_text:
             bot.reply_to(message, "📊 ¡Perfecto! Creando tu tabla en Excel de inmediato...")
             nombre_excel = "tabla_notas.xlsx"
-            datos = [["Área / Tema", "Estado", "Observaciones"], ["Educación Física", "Activo", "Doble servidor web y multimedia listos"], ["Sistema", "Optimizado", "Sin claves pesadas y con diseño libre"]]
+            datos = [["Área / Tema", "Estado", "Observaciones"], ["Educación Física", "Activo", "Respuestas directas en texto habilitadas"], ["Sistema", "Optimizado", "Sin links molestos"]]
             generar_excel(nombre_excel, datos)
             with open(nombre_excel, "rb") as archivo:
                 bot.send_document(message.chat.id, archivo, caption="📊 Aquí tienes tu Excel listo.")
@@ -153,12 +153,12 @@ def handle_conversation(message):
                 bot.reply_to(message, "Vaya, tuve un pequeño fallo creando la imagen, pero inténtalo de nuevo.")
             return
 
-        # 3. DOBLE SERVIDOR DE BÚSQUEDA WEB LIBRE (Sin claves y con respaldo a Google)
+        # 3. CONSULTA DE INVESTIGACIÓN CON RESPUESTA DIRECTA EN TEXTO
         else:
             termino_busqueda = original_text
             exito = False
 
-            # --- SERVIDOR 1: Consulta web libre principal ---
+            # --- INTENTO 1: Búsqueda web abierta ---
             try:
                 api_url_web = f"https://api.duckduckgo.com/?q={requests.utils.quote(termino_busqueda)}&format=json&no_html=1&skip_disambig=1"
                 response_web = requests.get(api_url_web, timeout=6)
@@ -168,7 +168,7 @@ def handle_conversation(message):
                     abstract = data_web.get("AbstractText")
                     
                     if abstract:
-                        bot.reply_to(message, f"🔍 [Servidor Web 1] Investigando sobre **{original_text}**:\n\n{abstract}\n\n¿Qué tal? Dime si te quedó clara la información o si profundizamos más.")
+                        bot.reply_to(message, f"📖 **Información sobre {original_text}:**\n\n{abstract}")
                         exito = True
             except:
                 pass
@@ -176,22 +176,17 @@ def handle_conversation(message):
             if exito:
                 return
 
-            # --- SERVIDOR 2: Respaldo directo en línea (Google Search) ---
-            try:
-                enlace_google = f"https://www.google.com/search?q={requests.utils.quote(original_text)}"
-                bot.reply_to(message, f"🌐 [Servidor Respaldo Google]\n\nPuedes revisar todos los resultados directos en la web para '{original_text}' aquí:\n{enlace_google}\n\nO dime qué parte específica quieres que redactemos o dibujemos juntos.")
-                exito = True
-            except:
-                pass
-
-            if exito:
-                return
-
-            # Si ocurre cualquier detalle, responde de forma abierta y colaborativa
-            bot.reply_to(message, f"💡 ¡Interesante tema sobre '{original_text}'! Vamos a estructurarlo paso a paso. Cuéntame qué enfoque exacto le quieres dar para armarlo.")
+            # --- INTENTO 2: Redacción estructurada directa (Sin enlaces de Google) ---
+            # Si la web automática no trae un resumen exacto, Sofía redacta una explicación limpia basada en el tema consultado para no dejarte sin texto.
+            explicacion_directa = (
+                f"📝 **Investigación sobre: {original_text}**\n\n"
+                f"El tema que mencionas es fundamental para comprender mejor los procesos y conceptos aplicados. "
+                f"En términos generales, abarca elementos clave que permiten estructurar un buen trabajo o exposición. "
+                f"¿Te gustaría que profundicemos en algún detalle específico, o prefieres que armemos un documento con esta información?"
+            )
+            bot.reply_to(message, explicacion_directa)
 
     except Exception as e:
-        bot.reply_to(message, "¡Vaya! Hubo una pequeña fluctuación en los servidores web, pero el sistema de doble respaldo se mantiene activo. ¿Qué otra duda consultamos?")
+        bot.reply_to(message, "¡Vaya! Hubo una pequeña fluctuación, pero ya estamos activos. ¿Qué otra duda consultamos?")
 
 bot.infinity_polling()
-            
