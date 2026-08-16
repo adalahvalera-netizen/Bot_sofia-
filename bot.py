@@ -3,7 +3,6 @@ import telebot
 import requests
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-# Usamos tu clave tal cual
 API_KEY = "AQ.Ab8RN6I-EYPGbLG_jAslbEzhMGzOaUwkGhuRwjCPZS_DwZhoDQ"
 
 bot = telebot.TeleBot(TOKEN)
@@ -26,7 +25,6 @@ def echo(message):
         return
     
     try:
-        # Petición directa a la API de Gemini sin librerías intermedias
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
         headers = {'Content-Type': 'application/json'}
         data = {
@@ -38,7 +36,6 @@ def echo(message):
         response = requests.post(url, json=data, headers=headers)
         resultado = response.json()
         
-        # Extraemos la respuesta de la IA
         respuesta_ia = resultado['candidates'][0]['content']['parts'][0]['text']
         bot.reply_to(message, respuesta_ia)
         
