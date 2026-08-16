@@ -11,30 +11,16 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
-        # Usamos un servicio público de chat gratuito
-        url = "https://api.duckduckgo.com/"
-        params = {
-            "q": message.text,
-            "format": "json",
-            "no_html": "1",
-            "skip_disambig": "1"
-        }
-        response = requests.get(url, params=params)
-        data = response.json()
+        # Usamos una API de IA pública y gratuita que no requiere claves
+        prompt = message.text
+        url = f"https://text.pollinations.ai/{requests.utils.quote(prompt)}"
         
-        # Obtenemos una respuesta más limpia o directa
-        answer = data.get("AbstractText") or data.get("Answer")
-        
-        if not answer and data.get("RelatedTopics"):
-            for topic in data["RelatedTopics"]:
-                if "Text" in topic:
-                    answer = topic["Text"]
-                    break
-                    
-        if answer:
+        response = requests.get(url)
+        if response.status_code == 200:
+            answer = response.text
             bot.reply_to(message, answer)
         else:
-            bot.reply_to(message, f"Entendido, {message.from_user.first_name}. ¿Podrías darme más detalles sobre lo que me comentas?")
+            bot.reply_to(message, "Lo siento, tuve un pequeño problema procesando tu mensaje. Inténtalo de nuevo.")
             
     except Exception as e:
         bot.reply_to(message, f"Ocurrió un error: {e}")
