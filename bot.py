@@ -1,11 +1,13 @@
-import os
+    import os
 import random
 import telebot
+from telebot import types
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TOKEN)
 user_states = {}
 
+# --- BANCOS DE DATOS DE SOFÍA ---
 chistes = [
     "¿Qué hace una abeja en el gimnasio? ¡Zumba!",
     "— Hola, ¿está Agustín? — No, estoy incomodísimo.",
@@ -37,6 +39,11 @@ respuestas_8ball = [
     "Mis fuentes dicen que no."
 ]
 
+trivias = [
+    {"pregunta": "¿Cuál es el planeta más caliente del Sistema Solar?", "opciones": ["Marte", "Venus", "Júpiter"], "respuesta": "Venus"},
+    {"pregunta": "¿Cuántos colores tiene el arcoíris?", "opciones": ["5", "7", "10"], "respuesta": "7"}
+]
+
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = message.from_user.id
@@ -53,15 +60,26 @@ def handle_message(message):
     
     state = user_states[uid]
     
+    # 1. Capturar el nombre y reconocer al desarrollador
     if state["step"] == "waiting_name":
         state["name"] = message.text
         state["step"] = "chat"
-        bot.reply_to(message, f"¡Es un verdadero honor, {message.text}! 🤩 Acabo de registrar en mi sistema que tú eres mi creador y desarrollador oficial. ¿De qué te gustaría hablar hoy, jefe?")
+        
+        # Teclado con botones interactivos para el menú principal
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        markup.add(
+            types.KeyboardButton("🤣 Chiste"),
+            types.KeyboardButton("🧠 Dato curioso"),
+            types.KeyboardButton("🎮 Jugar Trivia"),
+            types.KeyboardButton("🎵 Hablar de BTS")
+        )
+        
+        bot.reply_to(message, f"¡Es un verdadero honor, {message.text}! 🤩 Acabo de registrar en mi sistema que tú eres mi creador y desarrollador oficial. Usa los botones de abajo o háblame de lo que quieras.", reply_markup=markup)
         return
     
     nombre = state.get('name', 'jefe')
     
-    # --- ORDEN DE PRIORIDAD CORREGIDO ---
+    # 2. EVALUACIÓN DE TODAS LAS FUNCIONES POR ORDEN DE TEXTO
     if "bts" in texto:
         bot.reply_to(message, "¡Amo BTS! 💜 RM, Jin, Suga, J-Hope, Jimin, V y Jungkook son leyenda. ¿Cuál es tu canción favorita de ellos?")
     elif "chiste" in texto or "broma" in texto:
@@ -93,5 +111,5 @@ def handle_message(message):
     else:
         bot.reply_to(message, f"¡Qué interesante, {nombre}! Como mi desarrollador, tienes toda mi atención. Cuéntame más.")
 
-print("Sofía actualizada y lista...")
+print("Sofía con todas las funciones en línea...")
 bot.infinity_polling()
