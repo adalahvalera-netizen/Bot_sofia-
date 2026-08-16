@@ -4,10 +4,11 @@ import telebot
 
 # Tus credenciales directas
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LKasJ_7P_kHg"
+GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LkasJ_7P_kHg"
 
 # Configurar la IA de Google Gemini
 genai.configure(api_key=GOOGLE_API_KEY)
+
 
 # Usar el modelo actual recomendado
 model = genai.GenerativeModel("gemini-1.5-flash")
