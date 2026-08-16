@@ -8,9 +8,6 @@ API_KEY = "AQ.Ab8RN6I-EYPGbLG_jAslbEzhMGzOaUwkGhuRwjCPZS_DwZhoDQ"
 genai.configure(api_key=API_KEY)
 bot = telebot.TeleBot(TOKEN)
 
-# Usamos la configuración básica para evitar bloqueos
-model = genai.GenerativeModel("gemini-1.5-flash")
-
 user_names = {}
 
 @bot.message_handler(commands=['start'])
@@ -30,14 +27,12 @@ def echo(message):
         return
     
     try:
-        # Petición directa a Gemini
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(texto)
         bot.reply_to(message, response.text)
     except Exception as e:
-        # Esto imprimirá el error real en los logs de Railway
-        print(f"ERROR DE GEMINI: {e}")
-        bot.reply_to(message, f"Disculpa {user_names[uid]}, hubo un problema con la clave de IA o la conexión.")
+        print(f"Error detallado: {e}")
+        bot.reply_to(message, f"Disculpa {user_names[uid]}, hubo un pequeño problema con la IA.")
 
 print("Bot listo...")
 bot.infinity_polling()
-        
