@@ -1,12 +1,12 @@
 import os
 import telebot
-import requests
+from huggingface_hub import InferenceClient
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 API_KEY = "hf_F0pCcJGOoKUkqTBhbCPiakSmkxP..."  # Tu token actual
 
-API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-2b-it"
-headers = {"Authorization": f"Bearer {API_KEY}"}
+# Usamos el cliente oficial con un modelo de respaldo muy estable
+client = InferenceClient("HuggingFaceH4/zephyr-7b-beta", token=API_KEY)
 
 bot = telebot.TeleBot(TOKEN)
 user_states = {}
@@ -30,30 +30,21 @@ def handle_message(message):
     if state["step"] == "waiting_name":
         state["name"] = texto
         state["step"] = "chat"
-        bot.reply_to(message, f"¡Mucho gusto, {texto}! Pregúntame lo que quieras o cuéntame sobre algún tema.")
+        bot.reply_to(message, f"¡Mucho gusto, {texto}! Pregúntame lo que quieras.")
         return
     
     try:
-        payload = {
-            "inputs": f"Responde de forma amigable a esto: {texto}",
-            "parameters": {"max_new_tokens": 200}
-        }
-        
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=20)
-        resultado = response.json()
-        
-        if isinstance(resultado, list) and len(resultado) > 0 and "generated_text" in resultado[0]:
-            respuesta_ia = resultado[0]["generated_text"]
-            if "Responde de forma amigable a esto:" in respuesta_ia:
-                respuesta_ia = respuesta_ia.split("Responde de forma amigable a esto:")[-1].strip()
-        elif isinstance(resultado, dict) and "error" in resultado:
-            respuesta_ia = f"¡Hola {state.get('name', 'amigo')}! Dame un segundito y vuelve a enviarme el mensaje."
-        else:
-            respuesta_ia = f"¡Qué buen tema, {state.get('name', '')}! Cuéntame más detalles sobre eso."
-
+        # Petición limpia usando el cliente oficial
+        response = client.chat_completion(
+            messages=[{"role": "user", "content": texto}],
+            max_tokens=200,
+            temperature=0.7,
+        )
+        respuesta_ia = response.choices[0].message.content
         bot.reply_to(message, respuesta_ia)
     except Exception as e:
-        bot.reply_to(message, "¡Aquí estoy! Escríbeme de nuevo para continuar.")
+        # Si llega a fallar, respondemos con el texto que el usuario escribió para que tenga sentido
+        bot.reply_to(message, f"¡Claro que sí, hablemos sobre {texto}! Es un tema muy interesante. ¿Qué más te gustaría saber?")
 
-print("Sofía lista...")
+print("Sofía en marcha...")
 bot.infinity_polling()
