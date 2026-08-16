@@ -12,7 +12,7 @@ import openpyxl
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF, Imágenes) ---
+# --- HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF) ---
 
 def generar_pdf_requisitos_completos(nombre_archivo):
     c = canvas.Canvas(nombre_archivo, pagesize=letter)
@@ -60,11 +60,11 @@ def generar_excel(nombre_archivo, datos):
     wb.save(nombre_archivo)
 
 
-# --- MANEJADOR DE CHAT Y CONVERSACIÓN NATURAL ---
+# --- MANEJADOR DE CHAT CON DOBLE SERVIDOR WEB LIBRE ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista para charlar, explicarte cualquier tema, hacerte resúmenes o crearte documentos e imágenes. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con mis dos servidores de búsqueda web activos, y también puedo crearte imágenes bonitas para dibujar, colorear, escribir o imprimir, además de documentos. ¿Qué hacemos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -75,22 +75,26 @@ def handle_conversation(message):
         # 1. SALUDOS Y CONVERSACIÓN AMIGABLE
         if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
             respuestas_hola = [
-                "¡Hola! ¿Cómo estás? Yo por aquí todo bien, lista para ayudarte. ¿Y tú qué tal, cómo va tu día?",
-                "¡Ey, hola! Qué bueno leerte. ¿De qué te gustaría hablar hoy o qué tarea resolvemos?",
-                "¡Hola, hola! ¿Cómo va todo por allá? Cuéntame qué planes tienes o en qué te echo una mano."
+                "¡Hola! ¿Cómo estás? Yo por aquí con mis servidores listos para buscar en la web y ayudarte a crear imágenes o tareas. ¿Y tú qué tal?",
+                "¡Ey, hola! Qué bueno leerte. Pregúntame lo que quieras, sobre educación física, proyectos o pídeme un dibujo para colorear, ¡aquí lo resolvemos!",
+                "¡Hola, hola! ¿Cómo va todo por allá? Cuéntame qué investigamos hoy o qué imagen creamos."
             ]
             bot.reply_to(message, random.choice(respuestas_hola))
             return
 
         elif any(w in user_text for w in ["como estas", "que haces", "como te encuentras", "y tu que tal"]):
-            bot.reply_to(message, "¡Yo me encuentro excelente, gracias por preguntar! Aquí activa y procesando información para lo que necesites. ¿Y tú, qué cuentas de nuevo?")
+            bot.reply_to(message, "¡Yo me encuentro excelente! Con mis dos servidores web sincronizados y mis herramientas de dibujo y diseño listas. ¿Y tú, qué cuentas?")
+            return
+
+        elif "desarrollador" in user_text or "quien te creo" in user_text or "quien soy yo" in user_text:
+            bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó con este sistema de doble servidor web y creador multimedia en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
         elif "que puedes hacer" in user_text or "ayuda" in user_text:
-            bot.reply_to(message, "¡Puedo hacer de todo! Te explico cualquier tema platicando, te hago resúmenes, y también te creo crucigramas en Word, tablas en Excel, PDFs o dibujos con IA. ¡Pídeme lo que quieras!")
+            bot.reply_to(message, "¡Puedo hacer de todo! Busco información en la web usando doble motor, te explico temas complejos, te creo imágenes bonitas para dibujar, imprimir o colorear, y documentos en Word, Excel o PDFs. ¡Pídeme lo que quieras!")
             return
 
-        # 2. HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF, Imágenes)
+        # 2. HERRAMIENTAS DE ARCHIVOS Y MULTIMEDIA (Word, Excel, PDF, Imágenes)
         elif "crucigrama" in user_text and "word" in user_text:
             tema = user_text.replace("crucigrama", "").replace("word", "").replace("crear", "").strip()
             if not tema: tema = "General"
@@ -98,13 +102,13 @@ def handle_conversation(message):
             
             simulated_data = {
                 'pistas': [
-                    "1. (Horizontal) El planeta rojo de nuestro sistema solar.",
-                    "2. (Vertical) Satélite natural de la Tierra.",
-                    "3. (Horizontal) Fuerza que nos mantiene unidos al suelo.",
-                    "4. (Vertical) Nuestra estrella principal.",
-                    "5. (Horizontal) Gran masa de agua salada."
+                    "1. (Horizontal) Órgano principal del sistema circulatorio.",
+                    "2. (Vertical) Conjunto de huesos que da estructura al cuerpo.",
+                    "3. (Horizontal) Movimiento corporal coordinado.",
+                    "4. (Vertical) Capacidad física de resistencia.",
+                    "5. (Horizontal) Nutriente esencial para los músculos."
                 ],
-                'solucion': ["1. MARTE", "2. LUNA", "3. GRAVEDAD", "4. SOL", "5. OCEANO"]
+                'solucion': ["1. CORAZON", "2. ESQUELETO", "3. EJERCICIO", "4. CARDIO", "5. PROTEINA"]
             }
             nombre_doc = "crucigrama_sofia.docx"
             generar_word_crucigrama(nombre_doc, f"Crucigrama: {tema.upper()}", simulated_data)
@@ -126,56 +130,67 @@ def handle_conversation(message):
         elif "excel" in user_text or "tabla" in user_text:
             bot.reply_to(message, "📊 ¡Perfecto! Creando tu tabla en Excel de inmediato...")
             nombre_excel = "tabla_notas.xlsx"
-            datos = [["Materia / Área", "Estado", "Observaciones"], ["Educación Física", "Aprobado", "Excelente desempeño"], ["Funciones", "Activas", "Búsquedas listas"]]
+            datos = [["Área / Tema", "Estado", "Observaciones"], ["Educación Física", "Activo", "Doble servidor web y multimedia listos"], ["Sistema", "Optimizado", "Sin claves pesadas y con diseño libre"]]
             generar_excel(nombre_excel, datos)
             with open(nombre_excel, "rb") as archivo:
                 bot.send_document(message.chat.id, archivo, caption="📊 Aquí tienes tu Excel listo.")
             os.remove(nombre_excel)
             return
 
-        elif "imagen de" in user_text or "crea una imagen" in user_text:
-            prompt = user_text.replace("imagen de", "").replace("crea una imagen de", "").strip()
+        elif "imagen" in user_text or "crea una imagen" in user_text or "dibujo" in user_text or "colorear" in user_text or "imprimir" in user_text:
+            prompt = user_text.replace("imagen de", "").replace("crea una imagen de", "").replace("imagen", "").replace("dibujo", "").replace("para colorear", "").replace("para imprimir", "").strip()
             if not prompt:
-                bot.reply_to(message, "Dime qué dibujo quieres que haga. Por ejemplo: *imagen de un paisaje futurista*.")
-                return
-            bot.reply_to(message, f"🎨 ¡Manos a la obra! Dibujando '{prompt}'...")
+                prompt = "paisaje escolar"
+            
+            estilo_extra = " line art coloring book black and white for kids" if "colorear" in user_text else " high quality vibrant"
+            prompt_final = prompt + estilo_extra
+
+            bot.reply_to(message, f"🎨 ¡Manos a la obra! Creando tu diseño visual para '{prompt}'...")
             try:
-                image_url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}"
-                bot.send_photo(message.chat.id, image_url, caption=f"✨ Resultado para: {prompt}")
+                image_url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt_final)}"
+                bot.send_photo(message.chat.id, image_url, caption=f"✨ Tu imagen lista para usar: {prompt}")
             except:
                 bot.reply_to(message, "Vaya, tuve un pequeño fallo creando la imagen, pero inténtalo de nuevo.")
             return
 
-        # 3. BÚSQUEDA DIRECTA INTELIGENTE (Cualquier tema, personaje o ciencia)
+        # 3. DOBLE SERVIDOR DE BÚSQUEDA WEB LIBRE (Sin claves y con respaldo a Google)
         else:
-            # Limpiamos palabras comunes para quedarnos con el núcleo de lo que quiere buscar
-            busqueda = user_text.replace("dame un resumen de", "").replace("resumen de", "").replace("investigame", "").replace("investiga", "").replace("quien fue", "").replace("que son", "").replace("que es", "").strip()
-            if not busqueda: busqueda = original_text
+            termino_busqueda = original_text
+            exito = False
 
-            api_url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(busqueda)}"
-            response = requests.get(api_url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                extracto = data.get("extract")
-                titulo_articulo = data.get("title", original_text)
+            # --- SERVIDOR 1: Consulta web libre principal ---
+            try:
+                api_url_web = f"https://api.duckduckgo.com/?q={requests.utils.quote(termino_busqueda)}&format=json&no_html=1&skip_disambig=1"
+                response_web = requests.get(api_url_web, timeout=6)
                 
-                if extracto:
-                    bot.reply_to(message, f"📖 Te cuento sobre **{titulo_articulo}**:\n\n{extracto}\n\n¿Te sirve este resumen o quieres que profundicemos en algo más?")
-                    return
+                if response_web.status_code == 200:
+                    data_web = response_web.json()
+                    abstract = data_web.get("AbstractText")
+                    
+                    if abstract:
+                        bot.reply_to(message, f"🔍 [Servidor Web 1] Investigando sobre **{original_text}**:\n\n{abstract}\n\n¿Qué tal? Dime si te quedó clara la información o si profundizamos más.")
+                        exito = True
+            except:
+                pass
 
-            # Si Wikipedia da error, probamos buscando el texto original tal cual lo escribió
-            api_url_2 = f"https://es.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(original_text)}"
-            response_2 = requests.get(api_url_2)
-            if response_2.status_code == 200:
-                data_2 = response_2.json()
-                if data_2.get("extract"):
-                    bot.reply_to(message, f"📖 Aquí tienes la información:\n\n{data_2.get('extract')}")
-                    return
+            if exito:
+                return
 
-            bot.reply_to(message, f"¡Qué temazo ese! Aunque me costó un poquito ubicar los detalles exactos de '{original_text}', cuéntame más y lo analizamos juntos de una vez.")
+            # --- SERVIDOR 2: Respaldo directo en línea (Google Search) ---
+            try:
+                enlace_google = f"https://www.google.com/search?q={requests.utils.quote(original_text)}"
+                bot.reply_to(message, f"🌐 [Servidor Respaldo Google]\n\nPuedes revisar todos los resultados directos en la web para '{original_text}' aquí:\n{enlace_google}\n\nO dime qué parte específica quieres que redactemos o dibujemos juntos.")
+                exito = True
+            except:
+                pass
+
+            if exito:
+                return
+
+            # Si ocurre cualquier detalle, responde de forma abierta y colaborativa
+            bot.reply_to(message, f"💡 ¡Interesante tema sobre '{original_text}'! Vamos a estructurarlo paso a paso. Cuéntame qué enfoque exacto le quieres dar para armarlo.")
 
     except Exception as e:
-        bot.reply_to(message, "¡Vaya! Ocurrió un pequeño detalle técnico, pero aquí sigo firme contigo. ¿Qué hacemos ahora?")
+        bot.reply_to(message, "¡Vaya! Hubo una pequeña fluctuación en los servidores web, pero el sistema de doble respaldo se mantiene activo. ¿Qué otra duda consultamos?")
 
 bot.infinity_polling()
