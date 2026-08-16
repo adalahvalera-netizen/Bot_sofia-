@@ -1,16 +1,8 @@
-import os
-import google.generativeai as genai
+import requests
 import telebot
 
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-# Tu clave actual de Google Cloud
-GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LkasJ_7P_kHg"
-
-# Configuramos la autenticación para que la reconozca la librería oficial
-genai.configure(api_key=GOOGLE_API_KEY)
-
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
-model = genai.GenerativeModel("gemini-1.5-flash")
 
 @bot.message_handler(commands=["start", "help"])
 def send_welcome(message):
@@ -19,9 +11,27 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
-        response = model.generate_content(message.text)
-        bot.reply_to(message, response.text)
+        # Usamos una API pública gratuita que responde sin claves de Google
+        url = f"https://api.duckduckgo.com/?q={requests.utils.quote(message.text)}&format=json"
+        response = requests.get(url)
+        data = response.json()
+        
+        # Buscamos una respuesta resumida
+        answer = data.get("AbstractText")
+        if not answer:
+            # Si no hay resumen directo, buscamos en los temas relacionados
+            topics = data.get("RelatedTopics", [])
+            for topic in topics:
+                if "Text" in topic:
+                    answer = topic["Text"]
+                    break
+        
+        if answer:
+            bot.reply_to(message, answer)
+        else:
+            bot.reply_to(message, "¡Hola! Entendido sobre tu mensaje. ¿Te puedo ayudar con algo más específico?")
+            
     except Exception as e:
-        bot.reply_to(message, f"Ocurrió un error: {e}")
+        bot.reply_to(message, f"Ocurrió un error al procesar tu solicitud: {e}")
 
 bot.infinity_polling()
