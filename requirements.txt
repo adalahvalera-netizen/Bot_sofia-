@@ -1,2 +1,5 @@
 pyTelegramBotAPI
 requests
+reportlab
+python-docx
+openpyxl
