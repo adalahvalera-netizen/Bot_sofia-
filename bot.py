@@ -1,13 +1,12 @@
 import os
 import telebot
-import google.generativeai as genai
+import requests
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
+# Usamos tu clave tal cual
 API_KEY = "AQ.Ab8RN6I-EYPGbLG_jAslbEzhMGzOaUwkGhuRwjCPZS_DwZhoDQ"
 
-genai.configure(api_key=API_KEY)
 bot = telebot.TeleBot(TOKEN)
-
 user_names = {}
 
 @bot.message_handler(commands=['start'])
@@ -27,12 +26,25 @@ def echo(message):
         return
     
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(texto)
-        bot.reply_to(message, response.text)
+        # Petición directa a la API de Gemini sin librerías intermedias
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{
+                "parts": [{"text": texto}]
+            }]
+        }
+        
+        response = requests.post(url, json=data, headers=headers)
+        resultado = response.json()
+        
+        # Extraemos la respuesta de la IA
+        respuesta_ia = resultado['candidates'][0]['content']['parts'][0]['text']
+        bot.reply_to(message, respuesta_ia)
+        
     except Exception as e:
         print(f"Error detallado: {e}")
-        bot.reply_to(message, f"Disculpa {user_names[uid]}, hubo un pequeño problema con la IA.")
+        bot.reply_to(message, f"Disculpa {user_names[uid]}, hubo un problema al procesar la respuesta.")
 
 print("Bot listo...")
 bot.infinity_polling()
