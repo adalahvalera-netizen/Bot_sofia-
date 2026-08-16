@@ -24,10 +24,15 @@ def handle_message(message):
         response = requests.post(url, headers=headers, json=data)
         result = response.json()
         
-        # Extraer la respuesta del texto de Gemini
-        reply_text = result["candidates"][0]["content"]["parts"][0]["text"]
-        bot.reply_to(message, reply_text)
+        # Verificar si Google devolvió un error en lugar de candidatos
+        if "error" in result:
+            error_message = result["error"].get("message", "Error desconocido de la API")
+            bot.reply_to(message, f"Error de Google: {error_message}")
+        else:
+            reply_text = result["candidates"][0]["content"]["parts"][0]["text"]
+            bot.reply_to(message, reply_text)
+            
     except Exception as e:
-        bot.reply_to(message, f"Ocurrió un error al procesar tu solicitud: {e}")
+        bot.reply_to(message, f"Ocurrió un error interno: {e}")
 
 bot.infinity_polling()
