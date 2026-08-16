@@ -150,7 +150,7 @@ def generar_excel(nombre_archivo, datos):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con crucigramas, guiones de video, imágenes y documentos. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista con crucigramas, guiones de video y teatro, imágenes y documentos. ¿Qué hacemos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -160,7 +160,7 @@ def handle_conversation(message):
     try:
         # 1. SALUDOS Y CONVERSACIÓN
         if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
-            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes o guiones de video.")
+            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes o guiones.")
             return
 
         # RECONOCIMIENTO DEL CREADOR
@@ -168,28 +168,45 @@ def handle_conversation(message):
             bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
-        # 2. NUEVO COMANDO: CREACIÓN DE GUIONES PARA VIDEOS (TIKTOK / REELS)
-        elif any(w in user_text for w in ["video", "tiktok", "reel", "promocional", "redes sociales"]):
+        # 2. GENERADOR DE GUIONES (OBRAS DE TEATRO, TIKTOK, VIDEOS)
+        elif any(w in user_text for w in ["guion", "guión", "obra", "teatro", "escena", "video", "tiktok", "reel", "promocional"]):
             topic = user_text
-            for palabra in ["crea", "un", "de", "para", "video", "tiktok", "reel", "promocional", "redes", "sociales", "por", "favor"]:
+            for palabra in ["crea", "un", "una", "de", "para", "sobre", "guion", "guión", "obra", "teatro", "corta", "corte", "video", "tiktok", "reel", "promocional", "por", "favor"]:
                 topic = topic.replace(palabra, "")
             topic = topic.strip().capitalize()
-            if not topic: topic = "Tu Producto o Tema"
+            if not topic: topic = "La Honestidad"
 
-            guion = (
-                f"🎬 **ESTRATEGIA Y GUION DE VIDEO: {topic.upper()}**\n\n"
-                f"⏱️ **00:00 - 00:03 (El Gancho):**\n"
-                f"• **Visual:** Muestra una toma dinámica o la foto principal de {topic}.\n"
-                f"• **Texto en pantalla:** '¡Lo que no sabías sobre {topic}!' 🚀\n\n"
-                f"⏱️ **00:03 - 00:10 (Contenido / Beneficios):**\n"
-                f"• **Visual:** Cambio rápido de toma mostrando los detalles.\n"
-                f"• **Voz en off:** Menciona los 2 aspectos más llamativos que resuelven una duda o necesidad.\n\n"
-                f"⏱️ **00:10 - 00:15 (Llamado a la Acción):**\n"
-                f"• **Visual:** Muestra tu logo o contacto.\n"
-                f"• **Voz en off:** '¡Comenta o síguenos para más detalles!'\n\n"
-                f"🎵 **Música sugerida:** Audio en tendencia de ritmo alegre/moderno.\n"
-                f"🏷️ **Hashtags:** #{topic.replace(' ', '')} #Viral #RedesSociales #Ecuador"
-            )
+            if any(w in user_text for w in ["obra", "teatro", "escena"]):
+                guion = (
+                    f"🎭 **GUION TEATRAL: {topic.upper()}**\n\n"
+                    f"📌 **Personajes:**\n"
+                    f"• **Carlos:** Protagonista.\n"
+                    f"• **Sofía:** Amiga/Consejera.\n\n"
+                    f"🎬 **Escena 1: El dilema**\n"
+                    f"*(Escenario: Un parque escolar. Carlos encuentra una billetera en el suelo y la examina con duda.)*\n\n"
+                    f"**Carlos:** *(Sorprendido)* ¡Vaya! Se le cayó a alguien... Tiene dinero adentro.\n"
+                    f"**Sofía:** *(Entrando al escenario)* Carlos, ¿qué encontraste ahí?\n"
+                    f"**Carlos:** Una billetera. Nadie me vio tomarla, podría quedármela...\n"
+                    f"**Sofía:** Pero sabes que no es lo correcto. Ser honesto vale más que cualquier objeto que encuentres.\n\n"
+                    f"🎬 **Escena 2: La decisión**\n"
+                    f"**Carlos:** *(Reflexiona un segundo y sonríe)* Tienes razón. Vamos a entregarla a la dirección.\n"
+                    f"*(Salen juntos del escenario. Telón.)*\n\n"
+                    f"💡 **Mensaje:** La honestidad construye confianza y tranquilidad personal."
+                )
+            else:
+                guion = (
+                    f"🎬 **ESTRATEGIA Y GUION DE VIDEO: {topic.upper()}**\n\n"
+                    f"⏱️ **00:00 - 00:03 (El Gancho):**\n"
+                    f"• **Visual:** Muestra una toma dinámica sobre {topic}.\n"
+                    f"• **Texto en pantalla:** '¡Lo que no sabías sobre {topic}!' 🚀\n\n"
+                    f"⏱️ **00:03 - 00:10 (Contenido):**\n"
+                    f"• **Visual:** Cambio rápido de toma mostrando los detalles.\n"
+                    f"• **Voz en off:** Explica 2 aspectos clave sobre el tema.\n\n"
+                    f"⏱️ **00:10 - 00:15 (Llamado a la Acción):**\n"
+                    f"• **Voz en off:** '¡Comenta o síguenos para más detalles!'\n"
+                    f"🏷️ **Hashtags:** #{topic.replace(' ', '')} #Viral #Ecuador"
+                )
+            
             bot.reply_to(message, guion)
             return
 
@@ -248,10 +265,9 @@ def handle_conversation(message):
 
         # 4. RESPUESTA DIRECTA EN TEXTO
         else:
-            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus guías o proyectos. ¿Quieres que generemos un archivo Word, Excel, PDF o un guion de video promocional sobre esto?")
+            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus guías o proyectos. ¿Quieres que generemos un archivo Word, Excel, PDF o un guion sobre esto?")
 
     except Exception as e:
         bot.reply_to(message, "Hubo un pequeño detalle al procesar la solicitud, intenta nuevamente.")
 
 bot.infinity_polling()
-            
