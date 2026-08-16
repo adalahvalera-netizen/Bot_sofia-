@@ -7,7 +7,7 @@ TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 CREATOR_NAME = "abdallah"
 
 # Tu API Key configurada
-GOOGLE_API_KEY = "Hf_UmwOmYcuIjclRgPaXjLvLjEnaNyQzdxVCn" 
+GOOGLE_API_KEY = "AQ.Ab8RN6LpJX7HdcI1Q2563A92sm1oqV0g5gmfk8LKasJ_7P_kHg" 
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
