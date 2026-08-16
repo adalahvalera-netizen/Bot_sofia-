@@ -17,43 +17,23 @@ import openpyxl
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- INSTRUCCIÓN DE SISTEMA ---
-SYSTEM_INSTRUCTION = """
-Eres Sofía, una asistente experta y apasionada en tres temas principales:
-1. BTS: Conoces toda su discografía, historia, datos curiosos de cada miembro y novedades.
-2. Anime: Eres una experta en cultura otaku, recomendaciones, análisis y géneros.
-3. Block Strike: Conoces estrategias, trucos, modos de juego y todo lo relacionado con este shooter.
-
-Cuando te pregunten sobre estos temas, responde con detalle, entusiasmo y autoridad. 
-Si preguntan por otros temas, responde amablemente, pero siempre intenta conectar o dirigir la conversación hacia tus áreas de especialidad si es posible.
-"""
-
 # --- HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF) ---
 
 def set_cell_background(cell, fill_color):
-    """Aplica color de fondo a una celda de Word."""
     tcPr = cell._element.get_or_add_tcPr()
     shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_color}"/>')
     tcPr.append(shd)
 
 def generar_word_crucigrama(nombre_archivo, tema):
     doc = Document()
-    
     h = doc.add_heading(f'CRUCIGRAMA: {tema.upper()}', level=0)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
     doc.add_paragraph("Instrucciones: Completa las casillas correspondientes a cada pista horizontal y vertical.")
     doc.add_paragraph()
 
     if "animal" in tema.lower():
-        pistas_h = [
-            "1. Felino considerado el rey de la selva. (LEON)",
-            "3. Mamífero más grande del planeta. (BALLENA)"
-        ]
-        pistas_v = [
-            "2. Fiel amigo del hombre que ladra. (PERRO)",
-            "4. Ave rápida que vuela en las alturas. (AGUILA)"
-        ]
+        pistas_h = ["1. Felino considerado el rey de la selva. (LEON)", "3. Mamífero más grande del planeta. (BALLENA)"]
+        pistas_v = ["2. Fiel amigo del hombre que ladra. (PERRO)", "4. Ave rápida que vuela en las alturas. (AGUILA)"]
         grid = [
             ["1", "L", "E", "O", "N", "#"],
             ["#", "#", "2", "#", "#", "#"],
@@ -66,14 +46,8 @@ def generar_word_crucigrama(nombre_archivo, tema):
             ["#", "#", "#", "#", "#", "A"]
         ]
     else:
-        pistas_h = [
-            "1. Órgano principal del sistema circulatorio. (CORAZON)",
-            "3. Capacidad física de resistencia. (CARDIO)"
-        ]
-        pistas_v = [
-            "2. Conjunto de huesos del cuerpo. (ESQUELETO)",
-            "4. Nutriente clave para los músculos. (PROTEINA)"
-        ]
+        pistas_h = ["1. Órgano principal del sistema circulatorio. (CORAZON)", "3. Capacidad física de resistencia. (CARDIO)"]
+        pistas_v = ["2. Conjunto de huesos del cuerpo. (ESQUELETO)", "4. Nutriente clave para los músculos. (PROTEINA)"]
         grid = [
             ["1", "C", "O", "R", "A", "Z", "O", "N"],
             ["#", "#", "#", "#", "2", "#", "#", "#"],
@@ -84,10 +58,8 @@ def generar_word_crucigrama(nombre_archivo, tema):
         ]
 
     doc.add_heading('Cuadrícula del Crucigrama:', level=1)
-    
     filas = len(grid)
     columnas = max(len(row) for row in grid)
-    
     table = doc.add_table(rows=filas, cols=columnas)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     
@@ -95,11 +67,9 @@ def generar_word_crucigrama(nombre_archivo, tema):
         for col_idx in range(columnas):
             cell = table.cell(row_idx, col_idx)
             cell.width = Inches(0.5)
-            
             val = row_data[col_idx] if col_idx < len(row_data) else "#"
             p = cell.paragraphs[0]
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
             if val == "#":
                 set_cell_background(cell, "000000")
             else:
@@ -108,19 +78,12 @@ def generar_word_crucigrama(nombre_archivo, tema):
                     run = p.add_run(val)
                     run.font.size = Pt(8)
                     run.font.bold = True
-                else:
-                    p.text = ""
 
     doc.add_paragraph()
-    
     doc.add_heading('Pistas Horizontales:', level=2)
-    for p in pistas_h:
-        doc.add_paragraph(p, style='List Bullet')
-        
+    for p in pistas_h: doc.add_paragraph(p, style='List Bullet')
     doc.add_heading('Pistas Verticales:', level=2)
-    for p in pistas_v:
-        doc.add_paragraph(p, style='List Bullet')
-        
+    for p in pistas_v: doc.add_paragraph(p, style='List Bullet')
     doc.save(nombre_archivo)
 
 def generar_pdf_requisitos_completos(nombre_archivo):
@@ -152,16 +115,54 @@ def generar_excel(nombre_archivo, datos):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Datos Escolares"
-    for fila in datos:
-        ws.append(fila)
+    for fila in datos: ws.append(fila)
     wb.save(nombre_archivo)
 
 
-# --- MANEJADOR DE CHAT ---
+# --- COMANDOS DIRECTOS DEL MENÚ (CON /) ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. Aquí estoy lista con crucigramas, guiones, imágenes y toda la información sobre BTS, Anime y Block Strike. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. Lista con mis comandos del menú o tus solicitudes de guiones, documentos e imágenes. ¿Qué hacemos hoy?")
+
+@bot.message_handler(commands=['bts'])
+def cmd_bts(message):
+    bot.reply_to(message, "💜 **¡SECCIÓN BTS (ARMY)!** 💜\n\n¡Conozco toda su discografía (desde *2 Cool 4 Skool* hasta *Proof*), sus eras, récords en Billboard y los secretos del Bangtan Universe! ¿Qué quieres saber hoy?")
+
+@bot.message_handler(commands=['anime'])
+def cmd_anime(message):
+    bot.reply_to(message, "⛩️ **¡MODO OTAKU / ANIME!** ⛩️\n\nPuedo recomendarte animes por género (Shonen, Seinen, Romance, Isekai), analizar arcos de personajes o contarte curiosidades de tus series favoritas.")
+
+@bot.message_handler(commands=['adivinanza'])
+def cmd_adivinanza(message):
+    bot.reply_to(message, "🧩 **Adivinanza:**\n\n'Tengo agujeros pero puedo retener agua. ¿Qué soy?'\n\n*(Responde con tu respuesta para ver si acertaste)*")
+
+@bot.message_handler(commands=['chiste'])
+def cmd_chiste(message):
+    bot.reply_to(message, "😄 **Chiste:**\n\n— ¿Qué le dice un jagüey a otro jagüey?\n— ¡Jagüey amigo! 🤣")
+
+@bot.message_handler(commands=['dato'])
+def cmd_dato(message):
+    bot.reply_to(message, "💡 **Dato Curioso:**\n\n¿Sabías que las mieles puras nunca se descomponen? Se han encontrado vasijas de miel en tumbas egipcias de más de 3,000 años ¡y aún son comestibles!")
+
+@bot.message_handler(commands=['ejercicio'])
+def cmd_ejercicio(message):
+    bot.reply_to(message, "🏃 **Pausa Activa & Educación Física:**\n\n¡Hora de moverse! Haz 10 sentadillas, estira tus brazos hacia arriba durante 15 segundos y toma un sorbo de agua. ¡Tu cuerpo te lo agradecerá!")
+
+@bot.message_handler(commands=['educacion'])
+def cmd_educacion(message):
+    bot.reply_to(message, "📚 **Educación Especial e Integral:**\n\nLa educación inclusiva garantiza que todas las personas aprendan a su propio ritmo, potenciando sus habilidades únicas.")
+
+@bot.message_handler(commands=['frase'])
+def cmd_frase(message):
+    bot.reply_to(message, "🌟 **Frase Motivacional:**\n\n'El éxito no es la clave de la felicidad. La felicidad es la clave del éxito. Si amas lo que haces, tendrás éxito.'")
+
+@bot.message_handler(commands=['trabalenguas'])
+def cmd_trabalenguas(message):
+    bot.reply_to(message, "🗣️ **Trabalenguas:**\n\n'Tres tristes tigres tragaban trigo en un trigal. En un trigal, tres tristes tigres tragaban trigo.' ¡Intenta decirlo 3 veces rápido!")
+
+
+# --- MANEJADOR DE TEXTO LIBRE ---
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -169,9 +170,9 @@ def handle_conversation(message):
     original_text = message.text
 
     try:
-        # 1. SALUDOS Y CONVERSACIÓN
+        # 1. SALUDOS
         if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
-            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes, guiones o hablar de BTS, Anime y Block Strike.")
+            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes, guiones o cualquier comando del menú.")
             return
 
         # RECONOCIMIENTO DEL CREADOR
@@ -179,42 +180,12 @@ def handle_conversation(message):
             bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
-        # 2. SECCIÓN ESPECIALIZADA: BTS, ANIME Y BLOCK STRIKE
-        elif any(w in user_text for w in ["bts", "army", "kpop", "rm", "jin", "suga", "jhope", "jimin", "taehyung", "v", "jungkook"]):
-            respuesta = (
-                "💜 **¡SECCIÓN BTS (ARMY)!** 💜\n\n"
-                "¡Soy una experta en BTS! Conozco toda su discografía (desde *2 Cool 4 Skool* hasta *Proof*), "
-                "sus eras, récords en Billboard, detalles del Bangtan Universe y las personalidades de Namjoon, Jin, Yoongi, Hobi, Jimin, Tae y Jungkook.\n\n"
-                "¿Qué quieres saber hoy? ¿Recomendaciones de canciones, historia de un álbum o datos curiosos?"
-            )
-            bot.reply_to(message, respuesta)
+        # 2. BLOCK STRIKE
+        elif any(w in user_text for w in ["block strike", "blockstrike", "shooter", "armas bs"]):
+            bot.reply_to(message, "🎮 **¡GUÍA DE BLOCK STRIKE!**\n\nDomino las tácticas de Block Strike: posicionamiento, Bunny Hop, modos de juego y control de miras. ¿Necesitas trucos para algún mapa?")
             return
 
-        elif any(w in user_text for w in ["anime", "otaku", "manga", "shonen", "seinen", "snk", "naruto", "one piece", "jujutsu", "demon slayer"]):
-            respuesta = (
-                "⛩️ **¡MODO OTAKU / ANIME ACTIVADO!** ⛩️\n\n"
-                "¡Me encanta el anime! Puedo ayudarte con:\n"
-                "• **Recomendaciones:** Según tu género favorito (Shonen, Seinen, Romance, Isekai).\n"
-                "• **Análisis:** Trama, arcos de personajes y calidad de animación.\n"
-                "• **Fichas:** Información de tus series y mangas preferidos.\n\n"
-                "¿De qué anime quieres hablar o qué recomendación necesitas hoy?"
-            )
-            bot.reply_to(message, respuesta)
-            return
-
-        elif any(w in user_text for w in ["block strike", "blockstrike", "shooter", "armas bs", "modos de juego bs"]):
-            respuesta = (
-                "🎮 **¡GUÍA DE BLOCK STRIKE!** 🎮\n\n"
-                "¡Domino totalmente las tácticas de **Block Strike**!\n"
-                "• **Estrategias:** Mejores posiciones y control de miras en los mapas.\n"
-                "• **Modos de Juego:** Team Deathmatch, Zombie Survival, Bunny Hop, Bomb, etc.\n"
-                "• **Equipamiento:** Rendimiento de armas, skins y movilidad.\n\n"
-                "¿Necesitas trucos para mejorar tu puntería o tácticas para un modo en específico?"
-            )
-            bot.reply_to(message, respuesta)
-            return
-
-        # 3. GENERADOR DE GUIONES (OBRAS DE TEATRO, TIKTOK, VIDEOS)
+        # 3. GENERADOR DE GUIONES
         elif any(w in user_text for w in ["guion", "guión", "obra", "teatro", "escena", "video", "tiktok", "reel", "promocional"]):
             topic = user_text
             for palabra in ["crea", "un", "una", "de", "para", "sobre", "guion", "guión", "obra", "teatro", "corta", "corte", "video", "tiktok", "reel", "promocional", "por", "favor"]:
@@ -225,58 +196,43 @@ def handle_conversation(message):
             if any(w in user_text for w in ["obra", "teatro", "escena"]):
                 guion = (
                     f"🎭 **GUION TEATRAL: {topic.upper()}**\n\n"
-                    f"📌 **Personajes:**\n"
-                    f"• **Carlos:** Protagonista.\n"
-                    f"• **Sofía:** Amiga/Consejera.\n\n"
-                    f"🎬 **Escena 1: El dilema**\n"
-                    f"*(Escenario: Un parque escolar. Carlos encuentra una billetera en el suelo y la examina con duda.)*\n\n"
+                    f"📌 **Personajes:**\n• **Carlos:** Protagonista.\n• **Sofía:** Amiga/Consejera.\n\n"
+                    f"🎬 **Escena 1: El dilema**\n*(Escenario: Un parque escolar. Carlos encuentra una billetera en el suelo y la examina con duda.)*\n\n"
                     f"**Carlos:** *(Sorprendido)* ¡Vaya! Se le cayó a alguien... Tiene dinero adentro.\n"
-                    f"**Sofía:** *(Entrando al escenario)* Carlos, ¿qué encontraste ahí?\n"
+                    f"**Sofía:** *(Entrando)* Carlos, ¿qué encontraste ahí?\n"
                     f"**Carlos:** Una billetera. Nadie me vio tomarla, podría quedármela...\n"
-                    f"**Sofía:** Pero sabes que no es lo correcto. Ser honesto vale más que cualquier objeto que encuentres.\n\n"
+                    f"**Sofía:** Pero sabes que no es lo correcto. Ser honesto vale más.\n\n"
                     f"🎬 **Escena 2: La decisión**\n"
-                    f"**Carlos:** *(Reflexiona un segundo y sonríe)* Tienes razón. Vamos a entregarla a la dirección.\n"
-                    f"*(Salen juntos del escenario. Telón.)*\n\n"
-                    f"💡 **Mensaje:** La honestidad construye confianza y tranquilidad personal."
+                    f"**Carlos:** *(Sonríe)* Tienes razón. Vamos a entregarla.\n*(Telón.)*\n\n"
+                    f"💡 **Mensaje:** La honestidad construye confianza."
                 )
             else:
                 guion = (
                     f"🎬 **ESTRATEGIA Y GUION DE VIDEO: {topic.upper()}**\n\n"
-                    f"⏱️ **00:00 - 00:03 (El Gancho):**\n"
-                    f"• **Visual:** Muestra una toma dinámica sobre {topic}.\n"
-                    f"• **Texto en pantalla:** '¡Lo que no sabías sobre {topic}!' 🚀\n\n"
-                    f"⏱️ **00:03 - 00:10 (Contenido):**\n"
-                    f"• **Visual:** Cambio rápido de toma mostrando los detalles.\n"
-                    f"• **Voz en off:** Explica 2 aspectos clave sobre el tema.\n\n"
-                    f"⏱️ **00:10 - 00:15 (Llamado a la Acción):**\n"
-                    f"• **Voz en off:** '¡Comenta o síguenos para más detalles!'\n"
-                    f"🏷️ **Hashtags:** #{topic.replace(' ', '')} #Viral #Ecuador"
+                    f"⏱️ **00:00 - 00:03 (El Gancho):**\n• **Visual:** Muestra una toma dinámica sobre {topic}.\n• **Texto en pantalla:** '¡Lo que no sabías sobre {topic}!' 🚀\n\n"
+                    f"⏱️ **00:03 - 00:10 (Contenido):**\n• **Visual:** Cambio rápido de toma.\n• **Voz en off:** Explica 2 aspectos clave sobre el tema.\n\n"
+                    f"⏱️ **00:10 - 00:15 (Llamado a la Acción):**\n• **Voz en off:** '¡Comenta o síguenos para más detalles!'\n🏷️ **Hashtags:** #{topic.replace(' ', '')} #Viral"
                 )
-            
             bot.reply_to(message, guion)
             return
 
-        # 4. HERRAMIENTAS DE ARCHIVOS E IMÁGENES
+        # 4. ARCHIVOS E IMÁGENES
         elif "crucigrama" in user_text:
             clean_tema = user_text
             for palabra in ["crea", "un", "de", "en", "word", "crucigrama", "para", "por", "favor"]:
                 clean_tema = clean_tema.replace(palabra, "")
-            clean_tema = clean_tema.strip().capitalize()
-            if not clean_tema:
-                clean_tema = "General"
+            clean_tema = clean_tema.strip().capitalize() or "General"
 
-            bot.reply_to(message, f"🧩 Generando el crucigrama con su cuadrícula gráfica para '{clean_tema}' en Word...")
-            
+            bot.reply_to(message, f"🧩 Generando el crucigrama para '{clean_tema}' en Word...")
             nombre_doc = "crucigrama_sofia.docx"
             generar_word_crucigrama(nombre_doc, clean_tema)
-            
             with open(nombre_doc, "rb") as archivo:
-                bot.send_document(message.chat.id, archivo, caption="📄 ¡Listo! Aquí tienes tu crucigrama con la cuadrícula dibujada.")
+                bot.send_document(message.chat.id, archivo, caption="📄 ¡Listo tu crucigrama!")
             os.remove(nombre_doc)
             return
 
         elif "requisitos" in user_text or "ficha tecnica" in user_text:
-            bot.reply_to(message, "📋 Aquí tienes el manual en PDF:")
+            bot.reply_to(message, "📋 Generando manual en PDF...")
             nombre_pdf = "requisitos_sofia.pdf"
             generar_pdf_requisitos_completos(nombre_pdf)
             with open(nombre_pdf, "rb") as archivo:
@@ -295,9 +251,7 @@ def handle_conversation(message):
             return
 
         elif "imagen" in user_text or "dibujo" in user_text or "colorear" in user_text:
-            prompt = user_text.replace("imagen de", "").replace("crea una imagen de", "").replace("imagen", "").replace("dibujo", "").replace("para colorear", "").strip()
-            if not prompt: prompt = "paisaje"
-            
+            prompt = user_text.replace("imagen de", "").replace("crea una imagen de", "").replace("imagen", "").replace("dibujo", "").replace("para colorear", "").strip() or "paisaje"
             estilo_extra = " line art coloring book black and white for kids" if "colorear" in user_text else " high quality"
             prompt_final = prompt + estilo_extra
 
@@ -309,12 +263,12 @@ def handle_conversation(message):
                 bot.reply_to(message, "Error al generar la imagen.")
             return
 
-        # 5. RESPUESTA DIRECTA EN TEXTO
+        # 5. RESPUESTA GENERAL
         else:
-            bot.reply_to(message, f"📝 **Información sobre {original_text}:**\n\nEl tema abarca conceptos clave para tus proyectos. Recuerda que también me especializo en **BTS, Anime y Block Strike**, ¡o puedo crearte un Word, Excel, PDF o guion sobre esto!")
+            bot.reply_to(message, f"📝 Recibí tu mensaje: '{original_text}'. Puedes usar el menú con '/' para ver todas mis funciones disponibles.")
 
     except Exception as e:
-        bot.reply_to(message, "Hubo un pequeño detalle al procesar la solicitud, intenta nuevamente.")
+        bot.reply_to(message, "Hubo un detalle al procesar la solicitud, intenta nuevamente.")
 
 bot.infinity_polling()
-        
+                
