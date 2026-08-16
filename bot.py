@@ -3,7 +3,7 @@ import telebot
 import requests
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-API_KEY = "AQ.Ab8RN6I-EYPGbLG_jAslbEzhMGzOaUwkGhuRwjCPZS_DwZhoDQ"
+API_KEY = "AQ.Ab8RN6JI1KcoEmGrIPtbW-UEa0Y..." # Pon aquí tu clave completa
 
 bot = telebot.TeleBot(TOKEN)
 user_names = {}
