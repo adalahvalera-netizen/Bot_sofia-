@@ -64,7 +64,7 @@ def generar_excel(nombre_archivo, datos):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista para charlar como amigos, explicarte cualquier tema platicando, hacerte resúmenes, análisis, mapas conceptuales en texto, o crearte documentos (Word, Excel, PDF) e imágenes. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo estás? Aquí estoy lista para charlar, explicarte cualquier tema, hacerte resúmenes o crearte documentos e imágenes. ¿Qué hacemos hoy?")
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -87,11 +87,11 @@ def handle_conversation(message):
             return
 
         elif "que puedes hacer" in user_text or "ayuda" in user_text:
-            bot.reply_to(message, "¡Puedo hacer de todo! Te explico cualquier tema platicando (sin sonar a diccionario), te hago resúmenes, análisis, mapas conceptuales estructurados en texto, y también te creo crucigramas en Word, tablas en Excel, PDFs o dibujos con IA. ¡Pídeme lo que quieras!")
+            bot.reply_to(message, "¡Puedo hacer de todo! Te explico cualquier tema platicando, te hago resúmenes, y también te creo crucigramas en Word, tablas en Excel, PDFs o dibujos con IA. ¡Pídeme lo que quieras!")
             return
 
         # 2. HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF, Imágenes)
-        if "crucigrama" in user_text and "word" in user_text:
+        elif "crucigrama" in user_text and "word" in user_text:
             tema = user_text.replace("crucigrama", "").replace("word", "").replace("crear", "").strip()
             if not tema: tema = "General"
             bot.reply_to(message, f"🧩 ¡Claro que sí! Estoy armando un crucigrama de '{tema}' con sus pistas y soluciones en Word...")
@@ -126,7 +126,7 @@ def handle_conversation(message):
         elif "excel" in user_text or "tabla" in user_text:
             bot.reply_to(message, "📊 ¡Perfecto! Creando tu tabla en Excel de inmediato...")
             nombre_excel = "tabla_notas.xlsx"
-            datos = [["Materia / Área", "Estado", "Observaciones"], ["Educación Física", "Aprobado", "Excelente desempeño"], ["Funciones", "Activas", "Resúmenes y análisis listos"]]
+            datos = [["Materia / Área", "Estado", "Observaciones"], ["Educación Física", "Aprobado", "Excelente desempeño"], ["Funciones", "Activas", "Búsquedas listas"]]
             generar_excel(nombre_excel, datos)
             with open(nombre_excel, "rb") as archivo:
                 bot.send_document(message.chat.id, archivo, caption="📊 Aquí tienes tu Excel listo.")
@@ -146,14 +146,13 @@ def handle_conversation(message):
                 bot.reply_to(message, "Vaya, tuve un pequeño fallo creando la imagen, pero inténtalo de nuevo.")
             return
 
-        # 3. EXPLICACIONES, RESÚMENES, MAPAS CONCEPTUALES Y ANÁLISIS PLATICADO
+        # 3. BÚSQUEDA DIRECTA INTELIGENTE (Cualquier tema, personaje o ciencia)
         else:
-            query = user_text
-            # Limpiamos un poco el texto para buscar en Wikipedia de forma efectiva
-            limpio_query = user_text.replace("investigame", "").replace("investiga", "").replace("hazme un resumen de", "").replace("resumen de", "").replace("mapa conceptual de", "").replace("analiza", "").replace("quien fue", "").replace("que son los", "").replace("que es la", "").replace("que es el", "").strip()
-            if not limpio_query: limpio_query = original_text
+            # Limpiamos palabras comunes para quedarnos con el núcleo de lo que quiere buscar
+            busqueda = user_text.replace("dame un resumen de", "").replace("resumen de", "").replace("investigame", "").replace("investiga", "").replace("quien fue", "").replace("que son", "").replace("que es", "").strip()
+            if not busqueda: busqueda = original_text
 
-            api_url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(limpio_query)}"
+            api_url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(busqueda)}"
             response = requests.get(api_url)
             
             if response.status_code == 200:
@@ -162,29 +161,21 @@ def handle_conversation(message):
                 titulo_articulo = data.get("title", original_text)
                 
                 if extracto:
-                    # Si pide mapa conceptual o resumen, se lo estructuramos genial
-                    if "mapa conceptual" in user_text:
-                        respuesta = f"🗺️ **Mapa Conceptual / Estructura de {titulo_articulo}:**\n\n" \
-                                    f"• **Concepto Principal:** {titulo_articulo}\n" \
-                                    f"• **¿Qué es?:** {extracto[:250]}...\n" \
-                                    f"• **Puntos Clave:**\n" \
-                                    f"  - Origen / Contexto principal.\n" \
-                                    f"  - Impacto, características o funciones notables.\n" \
-                                    f"  - Legado o conclusión general."
-                    elif "resumen" in user_text:
-                        respuesta = f"📝 **Resumen sobre {titulo_articulo}:**\n\nPara que lo entiendas súper claro y sin enredos: {extracto}"
-                    else:
-                        # Explicación platicada y natural (lejos de ser un diccionario aburrido)
-                        respuesta = f"¡Claro que sí! Te cuento sobre **{titulo_articulo}**:\n\n{extracto}\n\n¿Te queda alguna duda o quieres que profundicemos en algún detalle en específico?"
-                    
-                    bot.reply_to(message, respuesta)
+                    bot.reply_to(message, f"📖 Te cuento sobre **{titulo_articulo}**:\n\n{extracto}\n\n¿Te sirve este resumen o quieres que profundicemos en algo más?")
                     return
 
-            # Si no da con Wikipedia directa, le damos una respuesta conversacional abierta
-            bot.reply_to(message, f"¡Qué temazo ese de '{original_text}'! Es súper interesante. Cuéntame qué enfoque le quieres dar (un análisis, un resumen, o estructurarlo por puntos) y te ayudo a armarlo de una vez.")
+            # Si Wikipedia da error, probamos buscando el texto original tal cual lo escribió
+            api_url_2 = f"https://es.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(original_text)}"
+            response_2 = requests.get(api_url_2)
+            if response_2.status_code == 200:
+                data_2 = response_2.json()
+                if data_2.get("extract"):
+                    bot.reply_to(message, f"📖 Aquí tienes la información:\n\n{data_2.get('extract')}")
+                    return
+
+            bot.reply_to(message, f"¡Qué temazo ese! Aunque me costó un poquito ubicar los detalles exactos de '{original_text}', cuéntame más y lo analizamos juntos de una vez.")
 
     except Exception as e:
         bot.reply_to(message, "¡Vaya! Ocurrió un pequeño detalle técnico, pero aquí sigo firme contigo. ¿Qué hacemos ahora?")
 
 bot.infinity_polling()
-        
