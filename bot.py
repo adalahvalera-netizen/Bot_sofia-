@@ -1,12 +1,12 @@
 import os
 import telebot
-from huggingface_hub import InferenceClient
+import requests
 
 TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 API_KEY = "hf_F0pCcJGOoKUkqTBhbCPiakSmkxP..."  # Tu token actual
 
-# Inicializamos el cliente oficial de Hugging Face con un modelo estable
-client = InferenceClient("HuggingFaceH4/zephyr-7b-beta", token=API_KEY)
+API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-2b-it"
+headers = {"Authorization": f"Bearer {API_KEY}"}
 
 bot = telebot.TeleBot(TOKEN)
 user_states = {}
@@ -14,7 +14,7 @@ user_states = {}
 @bot.message_handler(commands=['start'])
 def start(message):
     uid = message.from_user.id
-    user_states[uid] = {"step": "waiting_name", "history": []}
+    user_states[uid] = {"step": "waiting_name"}
     bot.reply_to(message, "¡Hola! Soy Sofía. ¿Cómo te llamas?")
 
 @bot.message_handler(func=lambda m: True)
@@ -23,35 +23,37 @@ def handle_message(message):
     texto = message.text
     
     if uid not in user_states:
-        user_states[uid] = {"step": "chat", "history": []}
+        user_states[uid] = {"step": "chat"}
     
     state = user_states[uid]
     
     if state["step"] == "waiting_name":
         state["name"] = texto
         state["step"] = "chat"
-        bot.reply_to(message, f"¡Mucho gusto, {texto}! ¿De qué te gustaría hablar hoy?")
+        bot.reply_to(message, f"¡Mucho gusto, {texto}! Pregúntame lo que quieras o cuéntame sobre algún tema.")
         return
     
     try:
-        # Añadimos el mensaje del usuario al historial
-        state["history"].append({"role": "user", "content": texto})
+        payload = {
+            "inputs": f"Responde de forma amigable a esto: {texto}",
+            "parameters": {"max_new_tokens": 200}
+        }
         
-        # Generamos la respuesta con la IA
-        response = client.chat_completion(
-            messages=state["history"][-4:], # Mantiene los últimos mensajes para contexto
-            max_tokens=300,
-            temperature=0.7,
-        )
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=20)
+        resultado = response.json()
         
-        respuesta_ia = response.choices[0].message.content
-        state["history"].append({"role": "assistant", "content": respuesta_ia})
-        
+        if isinstance(resultado, list) and len(resultado) > 0 and "generated_text" in resultado[0]:
+            respuesta_ia = resultado[0]["generated_text"]
+            if "Responde de forma amigable a esto:" in respuesta_ia:
+                respuesta_ia = respuesta_ia.split("Responde de forma amigable a esto:")[-1].strip()
+        elif isinstance(resultado, dict) and "error" in resultado:
+            respuesta_ia = f"¡Hola {state.get('name', 'amigo')}! Dame un segundito y vuelve a enviarme el mensaje."
+        else:
+            respuesta_ia = f"¡Qué buen tema, {state.get('name', '')}! Cuéntame más detalles sobre eso."
+
         bot.reply_to(message, respuesta_ia)
     except Exception as e:
-        print(f"Error detallado: {e}")
-        # Si ocurre un fallo, respondemos amigablemente sin congelarnos
-        bot.reply_to(message, f"¡Interesante lo que dices sobre {texto}! Cuéntame más detalles.")
+        bot.reply_to(message, "¡Aquí estoy! Escríbeme de nuevo para continuar.")
 
-print("Sofía bot en línea...")
+print("Sofía lista...")
 bot.infinity_polling()
