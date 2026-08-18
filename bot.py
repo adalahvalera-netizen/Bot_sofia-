@@ -15,40 +15,40 @@ import openpyxl
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- IA GOOGLE GEMINI ---
+# --- IA COHERE ---
 def consultar_ia_gratis(prompt_usuario):
-    if not GEMINI_API_KEY:
-        return "Falta agregar la variable GEMINI_API_KEY en Railway."
+    if not COHERE_API_KEY:
+        return "Falta agregar la variable COHERE_API_KEY en Railway."
     
     try:
-        # URL corregida con el modelo correcto y la versión estable v1beta
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        url = "https://api.cohere.com/v1/chat"
         
         payload = json.dumps({
-            "contents": [{
-                "parts": [{"text": f"Eres Sofía, una asistente virtual amigable. Responde brevemente: {prompt_usuario}"}]
-            }]
+            "message": prompt_usuario,
+            "preamble": "Eres Sofía, una asistente virtual amigable y útil. Responde brevemente en español."
         }).encode("utf-8")
 
         req = urllib.request.Request(
             url, 
             data=payload, 
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {COHERE_API_KEY}"
+            },
             method="POST"
         )
 
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            # Extraemos el texto de la respuesta de Gemini
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            return data.get("text", "").strip()
 
     except Exception as e:
-        print(f"Error Gemini: {e}")
-        return f"Error al consultar la IA: Verifica tu API Key en Railway."
+        print(f"Error Cohere: {e}")
+        return "Error al consultar la IA. Revisa tu COHERE_API_KEY."
 
 # --- HERRAMIENTAS DE ARCHIVOS ---
 def set_cell_background(cell, fill_color):
