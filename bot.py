@@ -17,17 +17,20 @@ import openpyxl
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- IA LIBRE ---
+# --- IA LIBRE Y MEJORADA ---
 def consultar_ia_gratis(prompt_usuario):
     try:
-        prompt_final = f"Eres Sofía, asistente virtual experta. Responde brevemente: {prompt_usuario}"
+        prompt_final = f"Eres Sofía, una asistente virtual experta. Responde de forma breve y clara: {prompt_usuario}"
         texto_codificado = urllib.parse.quote(prompt_final)
         url = f"https://text.pollinations.ai/{texto_codificado}?model=openai"
+        
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=15) as response:
-            return response.read().decode('utf-8').strip()
-    except Exception:
-        return "Lo siento, tuve un error técnico. Inténtalo de nuevo."
+        with urllib.request.urlopen(req, timeout=20) as response:
+            respuesta = response.read().decode('utf-8').strip()
+            return respuesta if respuesta else "No recibí respuesta de la IA."
+    except Exception as e:
+        print(f"DEBUG ERROR: {e}")
+        return f"Error técnico: {str(e)[:50]}"
 
 # --- HERRAMIENTAS ---
 def set_cell_background(cell, fill_color):
@@ -77,6 +80,7 @@ def handle_conversation(message):
             bot.send_document(message.chat.id, f)
         return
 
+    # Procesar mensajes e invocación a la IA
     bot.send_chat_action(message.chat.id, 'typing')
     respuesta = consultar_ia_gratis(message.text)
     bot.reply_to(message, respuesta)
