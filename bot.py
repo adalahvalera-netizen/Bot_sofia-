@@ -1,6 +1,5 @@
 import os
 import urllib.request
-import urllib.parse
 import json
 import telebot
 from reportlab.lib.pagesizes import letter
@@ -16,59 +15,38 @@ import openpyxl
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- IA GRATUITA Y ESTABLE ---
+# --- IA GOOGLE GEMINI ---
 def consultar_ia_gratis(prompt_usuario):
+    if not GEMINI_API_KEY:
+        return "Falta agregar la variable GEMINI_API_KEY en Railway."
+    
     try:
-        # Obtenemos primero el token de sesión de DuckDuckGo
-        req_token = urllib.request.Request(
-            "https://duckduckgo.com/duckchat/v1/status",
-            headers={"x-vchat-duckduckgo": "1", "User-Agent": "Mozilla/5.0"}
-        )
-        with urllib.request.urlopen(req_token, timeout=10) as resp:
-            vchat_token = resp.headers.get("x-vchat-duckduckgo")
-
-        if not vchat_token:
-            return "No se pudo obtener acceso temporal a la IA."
-
-        # Enviamos la consulta
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        
         payload = json.dumps({
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "user", "content": f"Eres Sofía, una asistente virtual amigable. Responde brevemente en español: {prompt_usuario}"}
-            ]
+            "contents": [{
+                "parts": [{"text": f"Eres Sofía, una asistente virtual amigable. Responde brevemente: {prompt_usuario}"}]
+            }]
         }).encode("utf-8")
 
-        req_chat = urllib.request.Request(
-            "https://duckduckgo.com/duckchat/v1/chat",
-            data=payload,
-            headers={
-                "x-vchat-duckduckgo": vchat_token,
-                "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0"
-            },
+        req = urllib.request.Request(
+            url, 
+            data=payload, 
+            headers={"Content-Type": "application/json"},
             method="POST"
         )
 
-        with urllib.request.urlopen(req_chat, timeout=15) as resp:
-            lineas = resp.read().decode("utf-8").split("\n")
-            texto_respuesta = ""
-            for linea in lineas:
-                if linea.startswith("data: "):
-                    data_str = linea[6:]
-                    if data_str != "[DONE]":
-                        try:
-                            obj = json.loads(data_str)
-                            if "message" in obj:
-                                texto_respuesta += obj["message"]
-                        except Exception:
-                            pass
-            return texto_respuesta.strip() if texto_respuesta else "¡Hola! ¿En qué te puedo ayudar hoy?"
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     except Exception as e:
-        print(f"Error IA: {e}")
-        return "Tuve un pequeño parpadeo de conexión. ¡Intenta preguntarme otra vez!"
+        print(f"Error Gemini: {e}")
+        return f"Error al consultar la IA: {str(e)[:40]}"
 
 # --- HERRAMIENTAS DE ARCHIVOS ---
 def set_cell_background(cell, fill_color):
