@@ -1,5 +1,6 @@
 import os
-import requests
+import urllib.request
+import urllib.parse
 import telebot
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
@@ -16,16 +17,16 @@ import openpyxl
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- FUNCIÓN DE INTELIGENCIA ARTIFICIAL LIBRE (SIN CLAVE) ---
+# --- FUNCIÓN DE INTELIGENCIA ARTIFICIAL LIBRE (SIN LIBRERÍAS EXTRA) ---
 def consultar_ia_gratis(prompt_usuario):
-    """Consulta a una IA pública y gratuita sin necesidad de API Key."""
+    """Consulta a una IA pública usando la librería nativa de Python."""
     try:
-        url = f"https://text.pollinations.ai/{requests.utils.quote(prompt_usuario)}"
-        response = requests.get(url, timeout=15)
-        if response.status_code == 200 and response.text.strip():
-            return response.text.strip()
-        else:
-            return None
+        texto_codificado = urllib.parse.quote(prompt_usuario)
+        url = f"https://text.pollinations.ai/{texto_codificado}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=12) as response:
+            respuesta = response.read().decode('utf-8')
+            return respuesta.strip() if respuesta else None
     except Exception:
         return None
 
@@ -258,7 +259,8 @@ def handle_conversation(message):
 
             bot.reply_to(message, f"🎨 Creando imagen para '{prompt}'...")
             try:
-                image_url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt_final)}"
+                texto_cod = urllib.parse.quote(prompt_final)
+                image_url = f"https://image.pollinations.ai/prompt/{texto_cod}"
                 bot.send_photo(message.chat.id, image_url, caption=f"✨ Tu imagen: {prompt}")
             except:
                 bot.reply_to(message, "Error al generar la imagen.")
@@ -267,7 +269,7 @@ def handle_conversation(message):
         # 4. RESPUESTA LIBRE E INTELIGENTE PARA CUALQUIER OTRA PREGUNTA
         else:
             bot.send_chat_action(message.chat.id, 'typing')
-            prompt_ia = f"Eres Sofía, una asistente virtual amigable, experta en BTS, anime, juegos como Block Strike y cultura general. Responde de forma clara y amable a esta consulta: {original_text}"
+            prompt_ia = f"Eres Sofía, una asistente virtual amigable, experta en BTS, anime, juegos como Block Strike y cultura general. Responde de forma clara y breve en español a esta pregunta: {original_text}"
             
             respuesta_ia = consultar_ia_gratis(prompt_ia)
             
@@ -280,4 +282,4 @@ def handle_conversation(message):
         bot.reply_to(message, "Hubo un pequeño detalle al procesar tu solicitud, intenta nuevamente.")
 
 bot.infinity_polling()
-                     
+    
