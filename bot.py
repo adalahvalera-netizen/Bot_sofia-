@@ -25,8 +25,8 @@ def consultar_ia_gratis(prompt_usuario):
         return "Falta agregar la variable GEMINI_API_KEY en Railway."
     
     try:
-        # Usamos el modelo actualizado v1beta gemini-2.5-flash
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        # URL corregida con el modelo correcto y la versión estable v1beta
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         
         payload = json.dumps({
             "contents": [{
@@ -43,11 +43,12 @@ def consultar_ia_gratis(prompt_usuario):
 
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
+            # Extraemos el texto de la respuesta de Gemini
             return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     except Exception as e:
         print(f"Error Gemini: {e}")
-        return f"Error al consultar la IA: {str(e)[:40]}"
+        return f"Error al consultar la IA: Verifica tu API Key en Railway."
 
 # --- HERRAMIENTAS DE ARCHIVOS ---
 def set_cell_background(cell, fill_color):
