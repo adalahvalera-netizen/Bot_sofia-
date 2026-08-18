@@ -1,5 +1,4 @@
 import os
-import random
 import requests
 import telebot
 from datetime import datetime
@@ -7,15 +6,28 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from docx import Document
-from docx.shared import Pt, Inches, RGBColor
+from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml import OxmlElement, parse_xml
-from docx.oxml.ns import nsdecls, qn
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
 import openpyxl
 
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+# --- FUNCIÓN DE INTELIGENCIA ARTIFICIAL LIBRE (SIN CLAVE) ---
+def consultar_ia_gratis(prompt_usuario):
+    """Consulta a una IA pública y gratuita sin necesidad de API Key."""
+    try:
+        url = f"https://text.pollinations.ai/{requests.utils.quote(prompt_usuario)}"
+        response = requests.get(url, timeout=15)
+        if response.status_code == 200 and response.text.strip():
+            return response.text.strip()
+        else:
+            return None
+    except Exception:
+        return None
 
 # --- HERRAMIENTAS DE ARCHIVOS (Word, Excel, PDF) ---
 
@@ -119,15 +131,15 @@ def generar_excel(nombre_archivo, datos):
     wb.save(nombre_archivo)
 
 
-# --- COMANDOS DIRECTOS DEL MENÚ (CON /) ---
+# --- COMANDOS DIRECTOS DEL MENÚ ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía. Lista con mis comandos del menú o tus solicitudes de guiones, documentos e imágenes. ¿Qué hacemos hoy?")
+    bot.reply_to(message, "¡Hola! Soy Sofía. Puedo responder cualquier duda que tengas, además de crear crucigramas, tablas de Excel, documentos en PDF y generar imágenes. ¿En qué te ayudo?")
 
 @bot.message_handler(commands=['bts'])
 def cmd_bts(message):
-    bot.reply_to(message, "💜 **¡SECCIÓN BTS (ARMY)!** 💜\n\n¡Conozco toda su discografía (desde *2 Cool 4 Skool* hasta *Proof*), sus eras, récords en Billboard y los secretos del Bangtan Universe! ¿Qué quieres saber hoy?")
+    bot.reply_to(message, "💜 **¡SECCIÓN BTS (ARMY)!** 💜\n\n¡Conozco toda su discografía, sus eras, récords en Billboard y datos de cada integrante! ¿Qué quieres saber sobre Bangtan hoy?")
 
 @bot.message_handler(commands=['anime'])
 def cmd_anime(message):
@@ -135,7 +147,7 @@ def cmd_anime(message):
 
 @bot.message_handler(commands=['adivinanza'])
 def cmd_adivinanza(message):
-    bot.reply_to(message, "🧩 **Adivinanza:**\n\n'Tengo agujeros pero puedo retener agua. ¿Qué soy?'\n\n*(Responde con tu respuesta para ver si acertaste)*")
+    bot.reply_to(message, "🧩 **Adivinanza:**\n\n'Tengo agujeros pero puedo retener agua. ¿Qué soy?'\n\n*(Responde para ver si acertaste)*")
 
 @bot.message_handler(commands=['chiste'])
 def cmd_chiste(message):
@@ -147,7 +159,7 @@ def cmd_dato(message):
 
 @bot.message_handler(commands=['ejercicio'])
 def cmd_ejercicio(message):
-    bot.reply_to(message, "🏃 **Pausa Activa & Educación Física:**\n\n¡Hora de moverse! Haz 10 sentadillas, estira tus brazos hacia arriba durante 15 segundos y toma un sorbo de agua. ¡Tu cuerpo te lo agradecerá!")
+    bot.reply_to(message, "🏃 **Pausa Activa & Educación Física:**\n\n¡Hora de moverse! Haz 10 sentadillas, estira tus brazos hacia arriba durante 15 segundos y toma agua.")
 
 @bot.message_handler(commands=['educacion'])
 def cmd_educacion(message):
@@ -159,10 +171,10 @@ def cmd_frase(message):
 
 @bot.message_handler(commands=['trabalenguas'])
 def cmd_trabalenguas(message):
-    bot.reply_to(message, "🗣️ **Trabalenguas:**\n\n'Tres tristes tigres tragaban trigo en un trigal. En un trigal, tres tristes tigres tragaban trigo.' ¡Intenta decirlo 3 veces rápido!")
+    bot.reply_to(message, "🗣️ **Trabalenguas:**\n\n'Tres tristes tigres tragaban trigo en un trigal. En un trigal, tres tristes tigres tragaban trigo.' ¡Intenta decirlo rápido!")
 
 
-# --- MANEJADOR DE TEXTO LIBRE ---
+# --- MANEJADOR DE TEXTO Y CONSULTAS LIBRES ---
 
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
@@ -170,28 +182,17 @@ def handle_conversation(message):
     original_text = message.text
 
     try:
-        # 1. SALUDOS
-        if any(w in user_text for w in ["hola", "saludos", "que tal", "epale", "hey"]):
-            bot.reply_to(message, "¡Hola! ¿Cómo estás? Lista para ayudarte con tus tareas, gráficos, imágenes, guiones o cualquier comando del menú.")
-            return
-
-        # RECONOCIMIENTO DEL CREADOR
-        elif any(w in user_text for w in ["desarrollador", "quien te creo", "quién te creó", "quien soy yo", "quién soy yo", "quien me creo", "quién me creó"]):
+        # 1. RECONOCIMIENTO DEL CREADOR
+        if any(w in user_text for w in ["desarrollador", "quien te creo", "quién te creó", "quien soy yo", "quién soy yo", "quien me creo", "quién me creó"]):
             bot.reply_to(message, "¡A ti te conozco perfectamente! Fuiste tú quien me programó en GitHub. ¡Eres mi desarrollador, Abdallah! 😎")
             return
 
-        # 2. BLOCK STRIKE
-        elif any(w in user_text for w in ["block strike", "blockstrike", "shooter", "armas bs"]):
-            bot.reply_to(message, "🎮 **¡GUÍA DE BLOCK STRIKE!**\n\nDomino las tácticas de Block Strike: posicionamiento, Bunny Hop, modos de juego y control de miras. ¿Necesitas trucos para algún mapa?")
-            return
-
-        # 3. GENERADOR DE GUIONES
+        # 2. GENERADOR DE GUIONES
         elif any(w in user_text for w in ["guion", "guión", "obra", "teatro", "escena", "video", "tiktok", "reel", "promocional"]):
             topic = user_text
             for palabra in ["crea", "un", "una", "de", "para", "sobre", "guion", "guión", "obra", "teatro", "corta", "corte", "video", "tiktok", "reel", "promocional", "por", "favor"]:
                 topic = topic.replace(palabra, "")
-            topic = topic.strip().capitalize()
-            if not topic: topic = "La Honestidad"
+            topic = topic.strip().capitalize() or "La Honestidad"
 
             if any(w in user_text for w in ["obra", "teatro", "escena"]):
                 guion = (
@@ -216,7 +217,7 @@ def handle_conversation(message):
             bot.reply_to(message, guion)
             return
 
-        # 4. ARCHIVOS E IMÁGENES
+        # 3. ARCHIVOS E IMÁGENES
         elif "crucigrama" in user_text:
             clean_tema = user_text
             for palabra in ["crea", "un", "de", "en", "word", "crucigrama", "para", "por", "favor"]:
@@ -263,12 +264,20 @@ def handle_conversation(message):
                 bot.reply_to(message, "Error al generar la imagen.")
             return
 
-        # 5. RESPUESTA GENERAL
+        # 4. RESPUESTA LIBRE E INTELIGENTE PARA CUALQUIER OTRA PREGUNTA
         else:
-            bot.reply_to(message, f"📝 Recibí tu mensaje: '{original_text}'. Puedes usar el menú con '/' para ver todas mis funciones disponibles.")
+            bot.send_chat_action(message.chat.id, 'typing')
+            prompt_ia = f"Eres Sofía, una asistente virtual amigable, experta en BTS, anime, juegos como Block Strike y cultura general. Responde de forma clara y amable a esta consulta: {original_text}"
+            
+            respuesta_ia = consultar_ia_gratis(prompt_ia)
+            
+            if respuesta_ia:
+                bot.reply_to(message, respuesta_ia)
+            else:
+                bot.reply_to(message, f"📝 Recibí tu consulta: '{original_text}'. Recuerda que también puedo generar documentos Word, Excel, PDF e imágenes si me lo pides.")
 
     except Exception as e:
-        bot.reply_to(message, "Hubo un detalle al procesar la solicitud, intenta nuevamente.")
+        bot.reply_to(message, "Hubo un pequeño detalle al procesar tu solicitud, intenta nuevamente.")
 
 bot.infinity_polling()
-                
+                     
