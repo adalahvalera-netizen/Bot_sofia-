@@ -6,9 +6,9 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from docx import Document
-from docx.oxml import parse_xml
-from docx.oxml.ns import nsdecls
 import openpyxl
+from gtts import gTTS
+import yt_dlp
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
@@ -23,12 +23,9 @@ def consultar_ia_gratis(prompt_usuario):
     
     try:
         url = "https://api.cohere.com/v1/chat"
-        
-        # Le indicamos su identidad y quién es su desarrollador
         instrucciones = (
             "Eres Sofía, una asistente virtual amigable creada y desarrollada por Abdallah. "
-            "Si te preguntan quién es tu desarrollador, creador o quién te hizo, responde con entusiasmo "
-            "que tu desarrollador es Abdallah. Responde de forma clara y breve en español."
+            "Responde de forma breve, útil y natural en español."
         )
         
         payload = json.dumps({
@@ -54,7 +51,7 @@ def consultar_ia_gratis(prompt_usuario):
         print(f"Error Cohere: {e}")
         return "Error al consultar la IA. Revisa tu COHERE_API_KEY."
 
-# --- HERRAMIENTAS DE ARCHIVOS E IMÁGENES ---
+# --- GENERADORES DE ARCHIVOS ---
 def generar_pdf(nombre_archivo, titulo, contenido):
     doc = SimpleDocTemplate(nombre_archivo, pagesize=letter)
     styles = getSampleStyleSheet()
@@ -65,76 +62,167 @@ def generar_pdf(nombre_archivo, titulo, contenido):
     ]
     doc.build(story)
 
-def set_cell_background(cell, fill_color):
-    tcPr = cell._element.get_or_add_tcPr()
-    shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_color}"/>')
-    tcPr.append(shd)
-
-def generar_word_crucigrama(nombre_archivo):
+def generar_word_texto(nombre_archivo, titulo, texto):
     doc = Document()
-    doc.add_heading('CRUCIGRAMA: ANIMALES', level=0)
-    grid = [["1", "L", "E", "O", "N"], ["#", "#", "2", "#", "#"]]
-    table = doc.add_table(rows=len(grid), cols=len(grid[0]))
-    for r in range(len(grid)):
-        for c in range(len(grid[0])):
-            cell = table.cell(r, c)
-            if grid[r][c] == "#": set_cell_background(cell, "000000")
-            else: cell.text = grid[r][c]
+    doc.add_heading(titulo, level=1)
+    doc.add_paragraph(texto)
     doc.save(nombre_archivo)
 
 def generar_excel(nombre_archivo):
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.append(["Area", "Estado"])
-    ws.append(["Educación Física", "Activo"])
+    ws.append(["Area", "Estado", "Creado Por"])
+    ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- COMANDOS Y MENSAJES ---
+# --- DESCARGAR MÚSICA ---
+def descargar_musica(nombre_cancion):
+    archivo_salida = "cancion.mp3"
+    if os.path.exists(archivo_salida):
+        os.remove(archivo_salida)
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'outtmpl': 'cancion',
+        'default_search': 'ytsearch1:',
+        'quiet': True
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([nombre_cancion])
+    
+    return archivo_salida
+
+# --- COMANDOS Y MANEJADORES ---
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía, creada por Abdallah. Puedo crear crucigramas, archivos PDF, Excel o responder tus preguntas.")
+    bot.reply_to(message, "¡Hola! Soy Sofía, creada por Abdallah. Puedo generar documentos, buscar canciones, crear imágenes, extraer audios de videos y hablar contigo por voz.")
 
+# 1. Recibir Fotos
+@bot.message_handler(content_types=['photo'])
+def handle_photo(message):
+    bot.send_chat_action(message.chat.id, 'typing')
+    bot.reply_to(message, "¡Recibí tu imagen! Qué gran foto me has mandado.")
+
+# 2. Recibir Videos (Extraer Audio)
+@bot.message_handler(content_types=['video'])
+def handle_video(message):
+    bot.send_message(message.chat.id, "🎥 Recibí tu video. Extrayendo el audio, dame un momento...")
+    bot.send_chat_action(message.chat.id, 'upload_document')
+    
+    try:
+        file_info = bot.get_file(message.video.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        
+        video_path = "video_recibido.mp4"
+        audio_path = "audio_extraido.mp3"
+        
+        with open(video_path, 'wb') as new_file:
+            new_file.write(downloaded_file)
+            
+        os.system(f"ffmpeg -i {video_path} -q:a 0 -map a {audio_path} -y")
+        
+        if os.path.exists(audio_path):
+            with open(audio_path, 'rb') as audio_file:
+                bot.send_audio(message.chat.id, audio_file, title="Audio extraído", performer="Sofía Bot")
+        else:
+            bot.reply_to(message, "No pude extraer el audio de este formato de video.")
+            
+        for f in [video_path, audio_path]:
+            if os.path.exists(f):
+                os.remove(f)
+                
+    except Exception as e:
+        print(f"Error procesando video: {e}")
+        bot.reply_to(message, "Ocurrió un error al procesar el video.")
+
+# 3. Mensajes de Texto (Comandos, descargas, imágenes y voz)
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
     user_text = message.text.lower()
     
-    # Opción 1: Generar archivo PDF
+    # Crear PDF
     if "pdf" in user_text:
         bot.send_chat_action(message.chat.id, 'upload_document')
         archivo = "documento.pdf"
-        generar_pdf(archivo, "Documento de Sofía", "Este es un archivo PDF generado automáticamente.")
+        generar_pdf(archivo, "Documento PDF", "Este es un archivo PDF generado automáticamente por Sofía.")
         with open(archivo, "rb") as f:
             bot.send_document(message.chat.id, f)
         return
 
-    # Opción 2: Enviar Imagen
-    if "imagen" in user_text or "foto" in user_text or "perrito" in user_text:
-        bot.send_chat_action(message.chat.id, 'upload_photo')
-        url_imagen = "https://images.dog.ceo/breeds/retriever-golden/n02099601_3000.jpg"
-        bot.send_photo(message.chat.id, url_imagen, caption="¡Aquí tienes tu imagen!")
-        return
-
-    # Opción 3: Generar Crucigrama Word
-    if "crucigrama" in user_text:
-        archivo = "crucigrama.docx"
-        generar_word_crucigrama(archivo)
+    # Crear Word
+    if "word" in user_text or "doc" in user_text or "crucigrama" in user_text:
+        bot.send_chat_action(message.chat.id, 'upload_document')
+        archivo = "documento.docx"
+        generar_word_texto(archivo, "Documento de Word", "Este es un documento de Word generado automáticamente por Sofía.")
         with open(archivo, "rb") as f:
             bot.send_document(message.chat.id, f)
         return
         
-    # Opción 4: Generar Excel
-    if "excel" in user_text:
+    # Crear Excel
+    if "excel" in user_text or "tabla" in user_text:
+        bot.send_chat_action(message.chat.id, 'upload_document')
         archivo = "tabla.xlsx"
         generar_excel(archivo)
         with open(archivo, "rb") as f:
             bot.send_document(message.chat.id, f)
         return
 
-    # Opción 5: Consulta con la IA
-    bot.send_chat_action(message.chat.id, 'typing')
-    respuesta = consultar_ia_gratis(message.text)
-    bot.reply_to(message, respuesta)
+    # Descargar Música (Ej: "descarga coqueta de heredero")
+    if "descarga" in user_text or "cancion" in user_text or "busca la canción" in user_text:
+        bot.send_message(message.chat.id, "🔍 Buscando y descargando tu música...")
+        bot.send_chat_action(message.chat.id, 'upload_document')
+        
+        try:
+            busqueda = user_text.replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
+            archivo_audio = descargar_musica(busqueda)
+            
+            with open(archivo_audio, "rb") as audio:
+                bot.send_audio(message.chat.id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
+            
+            if os.path.exists(archivo_audio):
+                os.remove(archivo_audio)
+            return
+        except Exception as e:
+            print(f"Error al descargar: {e}")
+            bot.reply_to(message, "No pude descargar la canción. Intenta escribir el nombre exacto.")
+            return
+
+    # Crear Imágenes (Ej: "dibuja un gato")
+    if "dibuja" in user_text or "crea una imagen" in user_text:
+        bot.send_message(message.chat.id, "🎨 Creando tu imagen...")
+        bot.send_chat_action(message.chat.id, 'upload_photo')
+        
+        try:
+            prompt = user_text.replace("crea una imagen de", "").replace("crea una imagen", "").replace("dibuja", "").strip()
+            prompt_url = prompt.replace(" ", "%20")
+            url_imagen = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&nologo=true"
+            bot.send_photo(message.chat.id, url_imagen, caption=f"Aquí tienes: {prompt.capitalize()}")
+            return
+        except Exception as e:
+            print(f"Error al crear imagen: {e}")
+            bot.reply_to(message, "No pude generar esa imagen, intenta con otra descripción.")
+            return
+
+    # Respuesta por IA en NOTA DE VOZ (Conversación normal)
+    bot.send_chat_action(message.chat.id, 'record_audio')
+    respuesta_texto = consultar_ia_gratis(message.text)
+    
+    archivo_voz = "voz_sofia.mp3"
+    tts = gTTS(text=respuesta_texto, lang='es', tld='com')
+    tts.save(archivo_voz)
+    
+    with open(archivo_voz, "rb") as voice:
+        bot.send_voice(message.chat.id, voice)
+        
+    if os.path.exists(archivo_voz):
+        os.remove(archivo_voz)
 
 if __name__ == "__main__":
     bot.infinity_polling()
-        
+    
