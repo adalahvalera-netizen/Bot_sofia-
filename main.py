@@ -10,7 +10,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from docx import Document
 import openpyxl
 from gtts import gTTS
-import yt_dlp
 import cohere
 
 # --- CONFIGURACIÓN ---
@@ -86,41 +85,40 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA (USANDO SOUNDCLOUD / ALTERNATIVOS) ---
-def descargar_musica(nombre_cancion):
-    archivo_base = "cancion"
+# --- DESCARGAR MÚSICA (VÍA API COBALT) ---
+def descargar_musica_api(url_or_query):
+    archivo_salida = "cancion.mp3"
     
-    for f in os.listdir("."):
-        if f.startswith("cancion"):
-            try:
-                os.remove(f)
-            except:
-                pass
+    if os.path.exists(archivo_salida):
+        os.remove(archivo_salida)
 
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': f'{archivo_base}.%(ext)s',
-        'default_search': 'scsearch1:',
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
+    # Si es una búsqueda de texto, convertimos a URL vía deezloader/external stream
+    query_encoded = urllib.parse.quote(url_or_query)
+    api_url = f"https://api.cobalt.tools/api/json"
+    
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
     }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([nombre_cancion])
-    except Exception as e:
-        ydl_opts['default_search'] = 'ytsearch1:'
-        ydl_opts['extractor_args'] = {'youtube': {'player_client': ['ios', 'mweb']}}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([nombre_cancion])
     
-    return "cancion.mp3"
+    # Payload para solicitar la descarga en MP3
+    data = json.dumps({
+        "url": f"https://www.youtube.com/watch?v={query_encoded}" if "youtube.com" not in url_or_query else url_or_query,
+        "downloadMode": "audio",
+        "audioFormat": "mp3"
+    }).encode('utf-8')
+
+    req = urllib.request.Request(api_url, data=data, headers=headers, method='POST')
+    
+    with urllib.request.urlopen(req) as response:
+        res_data = json.loads(response.read().decode('utf-8'))
+        download_link = res_data.get("url")
+        
+        if download_link:
+            urllib.request.urlretrieve(download_link, archivo_salida)
+            return archivo_salida
+            
+    raise Exception("No se pudo obtener el enlace de descarga.")
 
 # --- COMANDOS Y BOTONES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -247,7 +245,7 @@ def handle_conversation(message):
         
         try:
             busqueda = user_text_lower.replace("descarga la canción", "").replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
-            archivo_audio = descargar_musica(busqueda)
+            archivo_audio = descargar_musica_api(busqueda)
             
             if os.path.exists(archivo_audio):
                 with open(archivo_audio, "rb") as audio:
@@ -258,7 +256,7 @@ def handle_conversation(message):
             return
         except Exception as e:
             print(f"Error al descargar: {e}")
-            bot.reply_to(message, "No pude descargar la canción. Intenta de nuevo.")
+            bot.reply_to(message, "No pude descargar la canción. Intenta enviarme el link directo de YouTube.")
             return
 
     # Crear Imágenes
@@ -303,4 +301,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-    
+        
