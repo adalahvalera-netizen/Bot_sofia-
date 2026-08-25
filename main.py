@@ -63,27 +63,27 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA ROBUSTA (YOUTUBE SEARCH + YT-DLP) ---
+# --- DESCARGAR MÚSICA ROBUSTA ---
 def descargar_musica_robusta(busqueda):
     archivo_salida = "cancion.mp3"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
 
-    # Si no es link directo, usa el motor de búsqueda interno de yt-dlp
     if not ("youtube.com" in busqueda or "youtu.be" in busqueda):
         query = f"ytsearch1:{busqueda}"
     else:
         query = busqueda
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'ba/ba*',
         'outtmpl': 'cancion.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios', 'android']
+                'player_client': ['web', 'mweb', 'android', 'ios']
             }
         },
         'postprocessors': [{
@@ -214,4 +214,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-    
+            
