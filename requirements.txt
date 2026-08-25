@@ -5,3 +5,4 @@ openpyxl
 gTTS
 yt-dlp
 cohere
+ffmpeg-python
