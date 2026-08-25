@@ -16,7 +16,7 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# --- DICCIONARIO PARA GUARDAR LA PREFERENCIA DE CADA USUARIO ---
+# Diccionario para recordar el modo de cada usuario
 modo_usuario = {}
 
 # --- IA COHERE ---
@@ -101,7 +101,7 @@ def descargar_musica(nombre_cancion):
     
     return archivo_salida
 
-# --- COMANDOS Y MENÚ DE SELECCIÓN ---
+# --- COMANDOS Y BOTONES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
 def send_welcome(message):
     markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
@@ -115,13 +115,13 @@ def send_welcome(message):
         reply_markup=markup
     )
 
-# 1. Recibir Fotos
+# 1. Fotos
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     bot.send_chat_action(message.chat.id, 'typing')
     bot.reply_to(message, "¡Recibí tu imagen! Qué gran foto me has mandado.")
 
-# 2. Recibir Videos (Extraer Audio)
+# 2. Videos (Extraer Audio)
 @bot.message_handler(content_types=['video'])
 def handle_video(message):
     bot.send_message(message.chat.id, "🎥 Recibí tu video. Extrayendo el audio, dame un momento...")
@@ -153,20 +153,20 @@ def handle_video(message):
         print(f"Error procesando video: {e}")
         bot.reply_to(message, "Ocurrió un error al procesar el video.")
 
-# 3. Mensajes de Texto y Selección de Modo
+# 3. Conversación General
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
     user_id = message.chat.id
     user_text = message.text
 
-    # Cambiar selector de modo de respuesta
+    # Selección de modos por botones
     if user_text == "💬 Modo Solo Texto":
         modo_usuario[user_id] = "texto"
-        bot.send_message(user_id, "✅ Modo activado: Ahora Sofía solo responderá en **Texto**.")
+        bot.send_message(user_id, "✅ Modo activado: Sofía responderá solo en **Texto**.")
         return
     elif user_text == "🎙️ Modo Texto + Voz":
         modo_usuario[user_id] = "voz"
-        bot.send_message(user_id, "✅ Modo activado: Ahora Sofía responderá con **Texto y Nota de Voz**.")
+        bot.send_message(user_id, "✅ Modo activado: Sofía responderá con **Texto y Nota de Voz**.")
         return
 
     user_text_lower = user_text.lower()
@@ -234,14 +234,14 @@ def handle_conversation(message):
             bot.reply_to(message, "No pude generar esa imagen, intenta con otra descripción.")
             return
 
-    # --- RESPUESTA DE LA IA ---
+    # Respuesta por IA
     bot.send_chat_action(user_id, 'typing')
     respuesta_texto = consultar_ia_gratis(user_text)
     
-    # 1. SIEMPRE envía el texto completo (para no perder análisis o resúmenes)
+    # 1. Enviar siempre el texto plano primero
     bot.send_message(user_id, respuesta_texto)
     
-    # 2. Solo genera y envía la voz si el usuario eligió "Modo Texto + Voz"
+    # 2. Generar voz si el usuario lo activó por botón
     if modo_usuario.get(user_id) == "voz":
         try:
             bot.send_chat_action(user_id, 'record_audio')
