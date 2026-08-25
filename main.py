@@ -49,11 +49,8 @@ def consultar_ia_gratis(prompt_usuario):
 
 # --- LIMPIADOR DE MARKDOWN PARA PDF ---
 def limpiar_markdown_pdf(texto):
-    # Convierte encabezados (#, ##, ###) en texto en negrita
     texto = re.sub(r'#{1,6}\s*(.*)', r'<b>\1</b>', texto)
-    # Convierte **texto** a <b>texto</b>
     texto = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', texto)
-    # Elimina las líneas decorativas ---
     texto = re.sub(r'---', '', texto)
     return texto
 
@@ -62,7 +59,6 @@ def generar_pdf(nombre_archivo, titulo, contenido):
     doc = SimpleDocTemplate(nombre_archivo, pagesize=letter)
     styles = getSampleStyleSheet()
     
-    # Limpiar formato Markdown sobrante
     contenido_procesado = limpiar_markdown_pdf(contenido)
     texto_limpio = contenido_procesado.replace('\n', '<br/>')
     
@@ -78,7 +74,6 @@ def generar_word_texto(nombre_archivo, titulo, texto):
     doc.add_heading(titulo, level=1)
     for parrafo in texto.split('\n'):
         if parrafo.strip():
-            # Limpiar negritas de Markdown para Word
             parrafo_limpio = re.sub(r'\*\*(.*?)\*\*', r'\1', parrafo)
             parrafo_limpio = re.sub(r'#{1,6}\s*', '', parrafo_limpio)
             doc.add_paragraph(parrafo_limpio.strip())
@@ -91,29 +86,29 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA (ACTUALIZADO CON BYPASS DE BOT Y USER-AGENT) ---
+# --- DESCARGAR MÚSICA (USANDO CLIENTES ALTERNATIVOS DE YT-DLP) ---
 def descargar_musica(nombre_cancion):
-    archivo_salida = "cancion.mp3"
+    archivo_base = "cancion"
     
-    # Limpiar archivos previos si existen
-    for file in os.listdir("."):
-        if file.startswith("cancion"):
+    # Limpiar cualquier residuo previo
+    for f in os.listdir("."):
+        if f.startswith("cancion"):
             try:
-                os.remove(file)
+                os.remove(f)
             except:
                 pass
 
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': 'cancion.%(ext)s',
+        'format': 'm4a/bestaudio/best',
+        'outtmpl': f'{archivo_base}.%(ext)s',
         'default_search': 'ytsearch1:',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'ignoreerrors': False,
-        'source_address': '0.0.0.0',
-        'headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
         },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
@@ -123,9 +118,9 @@ def descargar_musica(nombre_cancion):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([f"ytsearch1:{nombre_cancion}"])
+        ydl.download([nombre_cancion])
     
-    return archivo_salida
+    return "cancion.mp3"
 
 # --- COMANDOS Y BOTONES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -263,7 +258,7 @@ def handle_conversation(message):
             return
         except Exception as e:
             print(f"Error al descargar: {e}")
-            bot.reply_to(message, "No pude descargar la canción. YouTube bloqueó la petición o intentaste con un nombre inválido.")
+            bot.reply_to(message, "No pude descargar la canción. YouTube bloqueó la petición de la IP de Railway.")
             return
 
     # Crear Imágenes
@@ -274,7 +269,6 @@ def handle_conversation(message):
         try:
             prompt = user_text_lower.replace("crea una imagen de", "").replace("crea una imagen", "").replace("dibuja", "").strip()
             
-            # Traducir a inglés con Cohere para alta precisión en la imagen
             prompt_en = consultar_ia_gratis(f"Translate this text to English for an image generator prompt. Output ONLY the translation: {prompt}")
             prompt_url = urllib.parse.quote(prompt_en)
             
