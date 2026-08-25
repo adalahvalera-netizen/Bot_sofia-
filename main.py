@@ -10,62 +10,43 @@ from reportlab.lib.styles import getSampleStyleSheet
 from docx import Document
 import openpyxl
 from gtts import gTTS
+import yt_dlp
 import cohere
+from meeshyoutube import VideosSearch  # Búsqueda directa de YouTube
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
 COHERE_API_KEY = os.getenv("COHERE_API_KEY", "").strip()
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
-
-# Inicializar cliente de Cohere
 co = cohere.Client(COHERE_API_KEY) if COHERE_API_KEY else None
-
-# Diccionario para recordar el modo de cada usuario
 modo_usuario = {}
 
-# --- IA COHERE (SDK OFICIAL) ---
+# --- IA COHERE ---
 def consultar_ia_gratis(prompt_usuario):
     if not COHERE_API_KEY or not co:
         return "Falta agregar la variable COHERE_API_KEY en Railway."
-    
     try:
         instrucciones = (
             "Eres Sofía, una asistente virtual amigable creada y desarrollada por Abdallah. "
             "Responde de forma útil, clara y natural en español."
         )
-        
-        response = co.chat(
-            message=prompt_usuario,
-            preamble=instrucciones
-        )
-        
+        response = co.chat(message=prompt_usuario, preamble=instrucciones)
         return response.text.strip()
-
     except Exception as e:
-        print(f"Error Cohere: {e}")
-        return f"Error al consultar la IA ({str(e)}). Revisa tu COHERE_API_KEY."
+        return f"Error al consultar la IA ({str(e)})."
 
-# --- LIMPIADOR DE MARKDOWN PARA PDF ---
+# --- LIMPIADOR Y GENERADORES DE ARCHIVOS ---
 def limpiar_markdown_pdf(texto):
     texto = re.sub(r'#{1,6}\s*(.*)', r'<b>\1</b>', texto)
     texto = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', texto)
-    texto = re.sub(r'---', '', texto)
-    return texto
+    return re.sub(r'---', '', texto)
 
-# --- GENERADORES DE ARCHIVOS DINÁMICOS ---
 def generar_pdf(nombre_archivo, titulo, contenido):
     doc = SimpleDocTemplate(nombre_archivo, pagesize=letter)
     styles = getSampleStyleSheet()
-    
-    contenido_procesado = limpiar_markdown_pdf(contenido)
-    texto_limpio = contenido_procesado.replace('\n', '<br/>')
-    
-    story = [
-        Paragraph(f"<b>{titulo}</b>", styles['Heading1']),
-        Spacer(1, 12),
-        Paragraph(texto_limpio, styles['BodyText'])
-    ]
+    texto_limpio = limpiar_markdown_pdf(contenido).replace('\n', '<br/>')
+    story = [Paragraph(f"<b>{titulo}</b>", styles['Heading1']), Spacer(1, 12), Paragraph(texto_limpio, styles['BodyText'])]
     doc.build(story)
 
 def generar_word_texto(nombre_archivo, titulo, texto):
@@ -73,9 +54,7 @@ def generar_word_texto(nombre_archivo, titulo, texto):
     doc.add_heading(titulo, level=1)
     for parrafo in texto.split('\n'):
         if parrafo.strip():
-            parrafo_limpio = re.sub(r'\*\*(.*?)\*\*', r'\1', parrafo)
-            parrafo_limpio = re.sub(r'#{1,6}\s*', '', parrafo_limpio)
-            doc.add_paragraph(parrafo_limpio.strip())
+            doc.add_paragraph(re.sub(r'\*\*(.*?)\*\*', r'\1', re.sub(r'#{1,6}\s*', '', parrafo)).strip())
     doc.save(nombre_archivo)
 
 def generar_excel(nombre_archivo):
@@ -85,94 +64,73 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA (VÍA API COBALT) ---
-def descargar_musica_api(url_or_query):
+# --- DESCARGAR MÚSICA DEFICITIVA ---
+def descargar_musica_robusta(busqueda):
     archivo_salida = "cancion.mp3"
-    
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
 
-    # Si es una búsqueda de texto, convertimos a URL vía deezloader/external stream
-    query_encoded = urllib.parse.quote(url_or_query)
-    api_url = f"https://api.cobalt.tools/api/json"
-    
-    headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+    # 1. Si enviaron el texto, buscamos el primer enlace de YouTube
+    if "youtube.com" in busqueda or "youtu.be" in busqueda:
+        url_target = busqueda
+    else:
+        results = VideosSearch(busqueda, limit=1).result()
+        if not results.get('result'):
+            raise Exception("No se encontraron resultados para la búsqueda.")
+        url_target = results['result'][0]['link']
+
+    # 2. Descargamos usando yt-dlp con bypass de cliente móvil (iOS/Android)
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': 'cancion.%(ext)s',
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios', 'android']
+            }
+        },
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
     }
-    
-    # Payload para solicitar la descarga en MP3
-    data = json.dumps({
-        "url": f"https://www.youtube.com/watch?v={query_encoded}" if "youtube.com" not in url_or_query else url_or_query,
-        "downloadMode": "audio",
-        "audioFormat": "mp3"
-    }).encode('utf-8')
 
-    req = urllib.request.Request(api_url, data=data, headers=headers, method='POST')
-    
-    with urllib.request.urlopen(req) as response:
-        res_data = json.loads(response.read().decode('utf-8'))
-        download_link = res_data.get("url")
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url_target])
         
-        if download_link:
-            urllib.request.urlretrieve(download_link, archivo_salida)
-            return archivo_salida
-            
-    raise Exception("No se pudo obtener el enlace de descarga.")
+    return archivo_salida
 
-# --- COMANDOS Y BOTONES ---
+# --- MANEJADORES DE MENSAJES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
 def send_welcome(message):
     markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    btn_texto = telebot.types.KeyboardButton("💬 Modo Solo Texto")
-    btn_voz = telebot.types.KeyboardButton("🎙️ Modo Texto + Voz")
-    markup.add(btn_texto, btn_voz)
-    
-    bot.send_message(
-        message.chat.id, 
-        "¡Hola! Soy Sofía, creada por Abdallah.\n\nElige cómo quieres que te responda:",
-        reply_markup=markup
-    )
+    markup.add(telebot.types.KeyboardButton("💬 Modo Solo Texto"), telebot.types.KeyboardButton("🎙️ Modo Texto + Voz"))
+    bot.send_message(message.chat.id, "¡Hola! Soy Sofía, creada por Abdallah.\n\nElige cómo quieres que te responda:", reply_markup=markup)
 
-# 1. Fotos
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
-    bot.send_chat_action(message.chat.id, 'typing')
     bot.reply_to(message, "¡Recibí tu imagen! Qué gran foto me has mandado.")
 
-# 2. Videos (Extraer Audio)
 @bot.message_handler(content_types=['video'])
 def handle_video(message):
-    bot.send_message(message.chat.id, "🎥 Recibí tu video. Extrayendo el audio, dame un momento...")
-    bot.send_chat_action(message.chat.id, 'upload_document')
-    
+    bot.send_message(message.chat.id, "🎥 Recibí tu video. Extrayendo el audio...")
     try:
         file_info = bot.get_file(message.video.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
-        
-        video_path = "video_recibido.mp4"
-        audio_path = "audio_extraido.mp3"
-        
-        with open(video_path, 'wb') as new_file:
-            new_file.write(downloaded_file)
-            
-        os.system(f"ffmpeg -i {video_path} -q:a 0 -map a {audio_path} -y")
-        
-        if os.path.exists(audio_path):
-            with open(audio_path, 'rb') as audio_file:
-                bot.send_audio(message.chat.id, audio_file, title="Audio extraído", performer="Sofía Bot")
-        else:
-            bot.reply_to(message, "No pude extraer el audio de este formato de video.")
-            
-        for f in [video_path, audio_path]:
-            if os.path.exists(f):
-                os.remove(f)
-                
+        with open("video.mp4", 'wb') as f:
+            f.write(downloaded_file)
+        os.system("ffmpeg -i video.mp4 -q:a 0 -map a audio_extraido.mp3 -y")
+        if os.path.exists("audio_extraido.mp3"):
+            with open("audio_extraido.mp3", 'rb') as a:
+                bot.send_audio(message.chat.id, a, title="Audio extraído", performer="Sofía Bot")
+        for f in ["video.mp4", "audio_extraido.mp3"]:
+            if os.path.exists(f): os.remove(f)
     except Exception as e:
-        print(f"Error procesando video: {e}")
         bot.reply_to(message, "Ocurrió un error al procesar el video.")
 
-# 3. Conversación General
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
     user_id = message.chat.id
@@ -189,116 +147,76 @@ def handle_conversation(message):
 
     user_text_lower = user_text.lower()
     
-    # Crear PDF Inteligente
     if "pdf" in user_text_lower:
         bot.send_chat_action(user_id, 'upload_document')
-        tema = user_text_lower.replace("crea un pdf de", "").replace("crea un pdf sobre", "").replace("haz un pdf", "").replace("pdf", "").strip()
-        if not tema:
-            tema = "Información General"
-            
-        prompt_ia = f"Escribe una guía completa, clara y detallada sobre: {tema}."
-        contenido_ia = consultar_ia_gratis(prompt_ia)
-        
+        tema = user_text_lower.replace("crea un pdf sobre", "").replace("crea un pdf de", "").replace("pdf", "").strip() or "Información General"
+        contenido_ia = consultar_ia_gratis(f"Escribe una guía completa sobre: {tema}.")
         archivo = f"documento_{user_id}.pdf"
         generar_pdf(archivo, f"Documento sobre {tema.capitalize()}", contenido_ia)
-        
         with open(archivo, "rb") as f:
             bot.send_document(user_id, f, caption=f"📄 PDF listo sobre: *{tema.capitalize()}*", parse_mode="Markdown")
-        
-        if os.path.exists(archivo):
-            os.remove(archivo)
+        if os.path.exists(archivo): os.remove(archivo)
         return
 
-    # Crear Word Inteligente
-    if "word" in user_text_lower or "doc" in user_text_lower or "crucigrama" in user_text_lower:
+    if "word" in user_text_lower or "doc" in user_text_lower:
         bot.send_chat_action(user_id, 'upload_document')
-        tema = user_text_lower.replace("crea un word de", "").replace("crea un word sobre", "").replace("haz un word", "").replace("word", "").replace("doc", "").strip()
-        if not tema:
-            tema = "Documento Informativo"
-            
-        prompt_ia = f"Redacta un documento detallado, articulado y formal sobre: {tema}."
-        contenido_ia = consultar_ia_gratis(prompt_ia)
-        
+        tema = user_text_lower.replace("crea un word sobre", "").replace("word", "").replace("doc", "").strip() or "Documento"
+        contenido_ia = consultar_ia_gratis(f"Redacta un documento sobre: {tema}.")
         archivo = f"documento_{user_id}.docx"
         generar_word_texto(archivo, tema.capitalize(), contenido_ia)
-        
         with open(archivo, "rb") as f:
-            bot.send_document(user_id, f, caption=f"📝 Documento de Word listo: *{tema.capitalize()}*", parse_mode="Markdown")
-            
-        if os.path.exists(archivo):
-            os.remove(archivo)
-        return
-        
-    # Crear Excel
-    if "excel" in user_text_lower or "tabla" in user_text_lower:
-        bot.send_chat_action(user_id, 'upload_document')
-        archivo = "tabla.xlsx"
-        generar_excel(archivo)
-        with open(archivo, "rb") as f:
-            bot.send_document(user_id, f)
+            bot.send_document(user_id, f, caption=f"📝 Word listo: *{tema.capitalize()}*", parse_mode="Markdown")
+        if os.path.exists(archivo): os.remove(archivo)
         return
 
-    # Descargar Música
-    if "descarga" in user_text_lower or "cancion" in user_text_lower or "busca la canción" in user_text_lower:
+    if "excel" in user_text_lower or "tabla" in user_text_lower:
+        bot.send_chat_action(user_id, 'upload_document')
+        generar_excel("tabla.xlsx")
+        with open("tabla.xlsx", "rb") as f: bot.send_document(user_id, f)
+        if os.path.exists("tabla.xlsx"): os.remove("tabla.xlsx")
+        return
+
+    if "descarga" in user_text_lower or "cancion" in user_text_lower:
         bot.send_message(user_id, "🔍 Buscando y descargando tu música...")
         bot.send_chat_action(user_id, 'upload_document')
-        
         try:
-            busqueda = user_text_lower.replace("descarga la canción", "").replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
-            archivo_audio = descargar_musica_api(busqueda)
-            
+            busqueda = user_text_lower.replace("descarga la canción", "").replace("descarga", "").replace("cancion", "").strip()
+            archivo_audio = descargar_musica_robusta(busqueda)
             if os.path.exists(archivo_audio):
                 with open(archivo_audio, "rb") as audio:
                     bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
                 os.remove(archivo_audio)
-            else:
-                bot.reply_to(message, "No pude procesar el archivo de audio. Intenta de nuevo.")
             return
         except Exception as e:
-            print(f"Error al descargar: {e}")
-            bot.reply_to(message, "No pude descargar la canción. Intenta enviarme el link directo de YouTube.")
+            bot.reply_to(message, "No pude descargar la canción. Intenta nuevamente.")
             return
 
-    # Crear Imágenes
     if "dibuja" in user_text_lower or "crea una imagen" in user_text_lower:
         bot.send_message(user_id, "🎨 Creando tu imagen...")
-        bot.send_chat_action(user_id, 'upload_photo')
-        
         try:
-            prompt = user_text_lower.replace("crea una imagen de", "").replace("crea una imagen", "").replace("dibuja", "").strip()
-            
-            prompt_en = consultar_ia_gratis(f"Translate this text to English for an image generator prompt. Output ONLY the translation: {prompt}")
-            prompt_url = urllib.parse.quote(prompt_en)
-            
-            url_imagen = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&nologo=true"
+            prompt = user_text_lower.replace("crea una imagen de", "").replace("dibuja", "").strip()
+            prompt_en = consultar_ia_gratis(f"Translate to English only: {prompt}")
+            url_imagen = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt_en)}?width=1024&height=1024&nologo=true"
             bot.send_photo(user_id, url_imagen, caption=f"Aquí tienes: {prompt.capitalize()}")
             return
         except Exception as e:
-            print(f"Error al crear imagen: {e}")
-            bot.reply_to(message, "No pude generar esa imagen, intenta con otra descripción.")
+            bot.reply_to(message, "No pude generar esa imagen.")
             return
 
-    # Respuesta por IA
     bot.send_chat_action(user_id, 'typing')
     respuesta_texto = consultar_ia_gratis(user_text)
-    
     bot.send_message(user_id, respuesta_texto)
     
     if modo_usuario.get(user_id) == "voz":
         try:
-            bot.send_chat_action(user_id, 'record_audio')
             archivo_voz = f"voz_{user_id}.mp3"
-            tts = gTTS(text=respuesta_texto, lang='es', tld='com')
-            tts.save(archivo_voz)
-            
+            gTTS(text=respuesta_texto, lang='es').save(archivo_voz)
             with open(archivo_voz, "rb") as voice:
                 bot.send_voice(user_id, voice)
-                
-            if os.path.exists(archivo_voz):
-                os.remove(archivo_voz)
+            if os.path.exists(archivo_voz): os.remove(archivo_voz)
         except Exception as e:
-            print(f"Error generando audio: {e}")
+            pass
 
 if __name__ == "__main__":
     bot.infinity_polling()
-        
+            
