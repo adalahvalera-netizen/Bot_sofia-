@@ -65,9 +65,11 @@ def generar_excel(nombre_archivo):
 
 # --- DESCARGAR MÚSICA ROBUSTA ---
 def descargar_musica_robusta(busqueda):
-    archivo_salida = "cancion.mp3"
+    archivo_salida = "cancion.m4a"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
+    if os.path.exists("cancion.mp3"):
+        os.remove("cancion.mp3")
 
     if not ("youtube.com" in busqueda or "youtu.be" in busqueda):
         query = f"ytsearch1:{busqueda}"
@@ -75,28 +77,23 @@ def descargar_musica_robusta(busqueda):
         query = busqueda
 
     ydl_opts = {
-        'format': 'ba/ba*',
+        'format': 'm4a/bestaudio/best',
         'outtmpl': 'cancion.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['web', 'mweb', 'android', 'ios']
-            }
-        },
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
+        'geo_bypass': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([query])
         
-    return archivo_salida
+    for file in os.listdir('.'):
+        if file.startswith("cancion."):
+            return file
+
+    return None
 
 # --- MANEJADORES DE MENSAJES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -177,13 +174,15 @@ def handle_conversation(message):
         try:
             busqueda = user_text_lower.replace("descarga la canción", "").replace("descarga", "").replace("cancion", "").strip()
             archivo_audio = descargar_musica_robusta(busqueda)
-            if os.path.exists(archivo_audio):
+            if archivo_audio and os.path.exists(archivo_audio):
                 with open(archivo_audio, "rb") as audio:
                     bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
                 os.remove(archivo_audio)
+            else:
+                bot.reply_to(message, "No se pudo procesar el archivo de audio.")
             return
         except Exception as e:
-            bot.reply_to(message, "No pude descargar la canción. Intenta nuevamente.")
+            bot.reply_to(message, f"Error en la descarga: {str(e)[:50]}")
             return
 
     if "dibuja" in user_text_lower or "crea una imagen" in user_text_lower:
@@ -214,4 +213,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-            
+        
