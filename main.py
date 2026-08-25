@@ -1,6 +1,7 @@
 import os
 import urllib.request
 import json
+import re
 import telebot
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -45,12 +46,24 @@ def consultar_ia_gratis(prompt_usuario):
         print(f"Error Cohere: {e}")
         return f"Error al consultar la IA ({str(e)}). Revisa tu COHERE_API_KEY."
 
+# --- LIMPIADOR DE MARKDOWN PARA PDF ---
+def limpiar_markdown_pdf(texto):
+    # Convierte encabezados (#, ##, ###) en texto en negrita
+    texto = re.sub(r'#{1,6}\s*(.*)', r'<b>\1</b>', texto)
+    # Convierte **texto** a <b>texto</b>
+    texto = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', texto)
+    # Elimina las líneas decorativas ---
+    texto = re.sub(r'---', '', texto)
+    return texto
+
 # --- GENERADORES DE ARCHIVOS DINÁMICOS ---
 def generar_pdf(nombre_archivo, titulo, contenido):
     doc = SimpleDocTemplate(nombre_archivo, pagesize=letter)
     styles = getSampleStyleSheet()
     
-    texto_limpio = contenido.replace('\n', '<br/>')
+    # Limpiar formato Markdown sobrante
+    contenido_procesado = limpiar_markdown_pdf(contenido)
+    texto_limpio = contenido_procesado.replace('\n', '<br/>')
     
     story = [
         Paragraph(f"<b>{titulo}</b>", styles['Heading1']),
@@ -64,7 +77,10 @@ def generar_word_texto(nombre_archivo, titulo, texto):
     doc.add_heading(titulo, level=1)
     for parrafo in texto.split('\n'):
         if parrafo.strip():
-            doc.add_paragraph(parrafo.strip())
+            # Limpiar negritas de Markdown para Word
+            parrafo_limpio = re.sub(r'\*\*(.*?)\*\*', r'\1', parrafo)
+            parrafo_limpio = re.sub(r'#{1,6}\s*', '', parrafo_limpio)
+            doc.add_paragraph(parrafo_limpio.strip())
     doc.save(nombre_archivo)
 
 def generar_excel(nombre_archivo):
@@ -274,4 +290,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-    
+        
