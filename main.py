@@ -86,11 +86,10 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA (USANDO CLIENTES ALTERNATIVOS DE YT-DLP) ---
+# --- DESCARGAR MÚSICA (USANDO SOUNDCLOUD / ALTERNATIVOS) ---
 def descargar_musica(nombre_cancion):
     archivo_base = "cancion"
     
-    # Limpiar cualquier residuo previo
     for f in os.listdir("."):
         if f.startswith("cancion"):
             try:
@@ -99,17 +98,12 @@ def descargar_musica(nombre_cancion):
                 pass
 
     ydl_opts = {
-        'format': 'm4a/bestaudio/best',
+        'format': 'bestaudio/best',
         'outtmpl': f'{archivo_base}.%(ext)s',
-        'default_search': 'ytsearch1:',
+        'default_search': 'scsearch1:',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web']
-            }
-        },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -117,8 +111,14 @@ def descargar_musica(nombre_cancion):
         }],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([nombre_cancion])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([nombre_cancion])
+    except Exception as e:
+        ydl_opts['default_search'] = 'ytsearch1:'
+        ydl_opts['extractor_args'] = {'youtube': {'player_client': ['ios', 'mweb']}}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([nombre_cancion])
     
     return "cancion.mp3"
 
@@ -258,7 +258,7 @@ def handle_conversation(message):
             return
         except Exception as e:
             print(f"Error al descargar: {e}")
-            bot.reply_to(message, "No pude descargar la canción. YouTube bloqueó la petición de la IP de Railway.")
+            bot.reply_to(message, "No pude descargar la canción. Intenta de nuevo.")
             return
 
     # Crear Imágenes
@@ -303,4 +303,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-            
+    
