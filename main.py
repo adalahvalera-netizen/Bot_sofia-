@@ -62,44 +62,36 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA DESDE MOTOR LIBRE ---
+# --- DESCARGAR MÚSICA DESDE MOTOR LIBRE DIRECTO ---
 def descargar_musica_robusta(busqueda):
     archivo_salida = "cancion.mp3"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
 
-    instancias = [
-        "https://pipedapi.kavin.rocks",
-        "https://api.piped.private.coffee",
-        "https://pipedapi.lunar.icu"
-    ]
+    # Motor alternativo vía API pública de búsqueda de audio directo
+    url_api = f"https://saavn.dev/api/search/songs?query={urllib.parse.quote(busqueda)}"
+    req = urllib.request.Request(url_api, headers={'User-Agent': 'Mozilla/5.0'})
     
-    for api_base in instancias:
-        try:
-            url_busqueda = f"{api_base}/search?q={urllib.parse.quote(busqueda)}&filter=music"
-            req = urllib.request.Request(url_busqueda, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=10) as response:
-                datos = json.loads(response.read().decode())
-                items = datos.get("items", [])
-                if not items:
-                    continue
-                video_id = items[0]["url"].split("v=")[-1]
-
-            url_stream = f"{api_base}/streams/{video_id}"
-            req_stream = urllib.request.Request(url_stream, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req_stream, timeout=10) as response:
-                datos_stream = json.loads(response.read().decode())
-                audio_streams = datos_stream.get("audioStreams", [])
-                if not audio_streams:
-                    continue
-                url_download = audio_streams[0]["url"]
-
-            urllib.request.urlretrieve(url_download, archivo_salida)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            datos = json.loads(response.read().decode())
+            results = datos.get("data", {}).get("results", [])
+            if not results:
+                return None
+            
+            # Obtener el enlace directo de mayor calidad de descarga
+            download_urls = results[0].get("downloadUrl", [])
+            if not download_urls:
+                return None
+            
+            # Seleccionar la URL de mejor calidad
+            audio_url = download_urls[-1].get("url")
+            
+            # Descargar archivo MP3 directamente
+            urllib.request.urlretrieve(audio_url, archivo_salida)
             return archivo_salida
-        except Exception:
-            continue
-
-    return None
+    except Exception:
+        return None
 
 # --- MANEJADORES DE MENSAJES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -185,10 +177,10 @@ def handle_conversation(message):
                     bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
                 os.remove(archivo_audio)
             else:
-                bot.reply_to(message, "No pude procesar la descarga en este momento.")
+                bot.reply_to(message, "No se encontró la canción en el servidor.")
             return
         except Exception as e:
-            bot.reply_to(message, "Ocurrió un error al descargar la música.")
+            bot.reply_to(message, "Error al procesar la descarga.")
             return
 
     if "dibuja" in user_text_lower or "crea una imagen" in user_text_lower:
@@ -219,4 +211,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-            
+    
