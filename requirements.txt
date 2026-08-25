@@ -4,4 +4,4 @@ python-docx
 openpyxl
 gTTS
 yt-dlp
-requests
+cohere
