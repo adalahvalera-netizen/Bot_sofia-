@@ -1,5 +1,6 @@
 import os
 import urllib.request
+import urllib.parse
 import json
 import re
 import telebot
@@ -90,26 +91,39 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA ---
+# --- DESCARGAR MÚSICA (ACTUALIZADO CON BYPASS DE BOT Y USER-AGENT) ---
 def descargar_musica(nombre_cancion):
     archivo_salida = "cancion.mp3"
-    if os.path.exists(archivo_salida):
-        os.remove(archivo_salida)
+    
+    # Limpiar archivos previos si existen
+    for file in os.listdir("."):
+        if file.startswith("cancion"):
+            try:
+                os.remove(file)
+            except:
+                pass
 
     ydl_opts = {
         'format': 'bestaudio/best',
+        'outtmpl': 'cancion.%(ext)s',
+        'default_search': 'ytsearch1:',
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'source_address': '0.0.0.0',
+        'headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'outtmpl': 'cancion',
-        'default_search': 'ytsearch1:',
-        'quiet': True
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([nombre_cancion])
+        ydl.download([f"ytsearch1:{nombre_cancion}"])
     
     return archivo_salida
 
@@ -237,18 +251,19 @@ def handle_conversation(message):
         bot.send_chat_action(user_id, 'upload_document')
         
         try:
-            busqueda = user_text_lower.replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
+            busqueda = user_text_lower.replace("descarga la canción", "").replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
             archivo_audio = descargar_musica(busqueda)
             
-            with open(archivo_audio, "rb") as audio:
-                bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
-            
             if os.path.exists(archivo_audio):
+                with open(archivo_audio, "rb") as audio:
+                    bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
                 os.remove(archivo_audio)
+            else:
+                bot.reply_to(message, "No pude procesar el archivo de audio. Intenta de nuevo.")
             return
         except Exception as e:
             print(f"Error al descargar: {e}")
-            bot.reply_to(message, "No pude descargar la canción. Intenta escribir el nombre exacto.")
+            bot.reply_to(message, "No pude descargar la canción. YouTube bloqueó la petición o intentaste con un nombre inválido.")
             return
 
     # Crear Imágenes
@@ -261,7 +276,7 @@ def handle_conversation(message):
             
             # Traducir a inglés con Cohere para alta precisión en la imagen
             prompt_en = consultar_ia_gratis(f"Translate this text to English for an image generator prompt. Output ONLY the translation: {prompt}")
-            prompt_url = prompt_en.replace(" ", "%20")
+            prompt_url = urllib.parse.quote(prompt_en)
             
             url_imagen = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&nologo=true"
             bot.send_photo(user_id, url_imagen, caption=f"Aquí tienes: {prompt.capitalize()}")
@@ -294,4 +309,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-        
+            
