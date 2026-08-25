@@ -19,9 +19,10 @@ bot = telebot.TeleBot(TELEGRAM_TOKEN)
 # Diccionario para recordar el modo de cada usuario
 modo_usuario = {}
 
-# --- IA COHERE ---
+# --- IA COHERE (CORREGIDA) ---
 def consultar_ia_gratis(prompt_usuario):
-    if not COHERE_API_KEY:
+    api_key_limpia = COHERE_API_KEY.strip()
+    if not api_key_limpia:
         return "Falta agregar la variable COHERE_API_KEY en Railway."
     
     try:
@@ -31,7 +32,9 @@ def consultar_ia_gratis(prompt_usuario):
             "Responde de forma útil, clara y natural en español."
         )
         
+        # Inclusión del parámetro obligatorio 'model' para Cohere v1/chat
         payload = json.dumps({
+            "model": "command-r-plus",
             "message": prompt_usuario,
             "preamble": instrucciones
         }).encode("utf-8")
@@ -41,7 +44,7 @@ def consultar_ia_gratis(prompt_usuario):
             data=payload, 
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {COHERE_API_KEY}"
+                "Authorization": f"Bearer {api_key_limpia}"
             },
             method="POST"
         )
@@ -52,7 +55,7 @@ def consultar_ia_gratis(prompt_usuario):
 
     except Exception as e:
         print(f"Error Cohere: {e}")
-        return "Error al consultar la IA. Revisa tu COHERE_API_KEY."
+        return f"Error al consultar la IA ({str(e)}). Revisa tu COHERE_API_KEY."
 
 # --- GENERADORES DE ARCHIVOS DINÁMICOS ---
 def generar_pdf(nombre_archivo, titulo, contenido):
@@ -288,4 +291,3 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-        
