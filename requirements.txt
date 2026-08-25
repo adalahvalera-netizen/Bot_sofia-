@@ -1,5 +1,9 @@
 pyTelegramBotAPI
-requests
 reportlab
 python-docx
 openpyxl
+gTTS
+yt-dlp
+SpeechRecognition
+pydub
+requests
