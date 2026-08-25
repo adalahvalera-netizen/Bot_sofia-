@@ -10,7 +10,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from docx import Document
 import openpyxl
 from gtts import gTTS
-import yt_dlp
 import cohere
 
 # --- CONFIGURACIÓN ---
@@ -63,37 +62,38 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA ROBUSTA ---
+# --- DESCARGAR MÚSICA VÍA PIPED API (EVITA BLOQUEOS DE YOUTUBE) ---
 def descargar_musica_robusta(busqueda):
-    archivo_salida = "cancion.m4a"
+    archivo_salida = "cancion.mp3"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
-    if os.path.exists("cancion.mp3"):
-        os.remove("cancion.mp3")
 
-    if not ("youtube.com" in busqueda or "youtu.be" in busqueda):
-        query = f"ytsearch1:{busqueda}"
-    else:
-        query = busqueda
+    # Buscar en la API pública de Piped
+    url_busqueda = f"https://pipedapi.kavin.rocks/search?q={urllib.parse.quote(busqueda)}&filter=music"
+    req = urllib.request.Request(url_busqueda, headers={'User-Agent': 'Mozilla/5.0'})
+    
+    with urllib.request.urlopen(req) as response:
+        datos = json.loads(response.read().decode())
+        items = datos.get("items", [])
+        if not items:
+            raise Exception("No se encontraron resultados.")
+        video_id = items[0]["url"].split("v=")[-1]
 
-    ydl_opts = {
-        'format': 'm4a/bestaudio/best',
-        'outtmpl': 'cancion.%(ext)s',
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'geo_bypass': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([query])
+    # Obtener enlace de audio de Piped
+    url_stream = f"https://pipedapi.kavin.rocks/streams/{video_id}"
+    req_stream = urllib.request.Request(url_stream, headers={'User-Agent': 'Mozilla/5.0'})
+    
+    with urllib.request.urlopen(req_stream) as response:
+        datos_stream = json.loads(response.read().decode())
+        audio_streams = datos_stream.get("audioStreams", [])
+        if not audio_streams:
+            raise Exception("Sin stream de audio disponible.")
         
-    for file in os.listdir('.'):
-        if file.startswith("cancion."):
-            return file
+        url_download = audio_streams[0]["url"]
 
-    return None
+    # Descargar el archivo directamente
+    urllib.request.urlretrieve(url_download, archivo_salida)
+    return archivo_salida
 
 # --- MANEJADORES DE MENSAJES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -213,4 +213,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-        
+            
