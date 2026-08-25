@@ -3,6 +3,5 @@ reportlab
 python-docx
 openpyxl
 gTTS
-yt-dlp
 cohere
-ffmpeg-python
+yt-dlp
