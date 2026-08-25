@@ -16,6 +16,9 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+# --- DICCIONARIO PARA GUARDAR LA PREFERENCIA DE CADA USUARIO ---
+modo_usuario = {}
+
 # --- IA COHERE ---
 def consultar_ia_gratis(prompt_usuario):
     if not COHERE_API_KEY:
@@ -25,7 +28,7 @@ def consultar_ia_gratis(prompt_usuario):
         url = "https://api.cohere.com/v1/chat"
         instrucciones = (
             "Eres Sofía, una asistente virtual amigable creada y desarrollada por Abdallah. "
-            "Responde de forma breve, útil y natural en español."
+            "Responde de forma útil, clara y natural en español."
         )
         
         payload = json.dumps({
@@ -98,10 +101,19 @@ def descargar_musica(nombre_cancion):
     
     return archivo_salida
 
-# --- COMANDOS Y MANEJADORES ---
-@bot.message_handler(commands=['start', 'help'])
+# --- COMANDOS Y MENÚ DE SELECCIÓN ---
+@bot.message_handler(commands=['start', 'help', 'modo'])
 def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy Sofía, creada por Abdallah. Puedo generar documentos, buscar canciones, crear imágenes, extraer audios de videos y hablar contigo por voz.")
+    markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    btn_texto = telebot.types.KeyboardButton("💬 Modo Solo Texto")
+    btn_voz = telebot.types.KeyboardButton("🎙️ Modo Texto + Voz")
+    markup.add(btn_texto, btn_voz)
+    
+    bot.send_message(
+        message.chat.id, 
+        "¡Hola! Soy Sofía, creada por Abdallah.\n\nElige cómo quieres que te responda:",
+        reply_markup=markup
+    )
 
 # 1. Recibir Fotos
 @bot.message_handler(content_types=['photo'])
@@ -141,49 +153,62 @@ def handle_video(message):
         print(f"Error procesando video: {e}")
         bot.reply_to(message, "Ocurrió un error al procesar el video.")
 
-# 3. Mensajes de Texto (Comandos, descargas, imágenes y voz)
+# 3. Mensajes de Texto y Selección de Modo
 @bot.message_handler(func=lambda message: True)
 def handle_conversation(message):
-    user_text = message.text.lower()
+    user_id = message.chat.id
+    user_text = message.text
+
+    # Cambiar selector de modo de respuesta
+    if user_text == "💬 Modo Solo Texto":
+        modo_usuario[user_id] = "texto"
+        bot.send_message(user_id, "✅ Modo activado: Ahora Sofía solo responderá en **Texto**.")
+        return
+    elif user_text == "🎙️ Modo Texto + Voz":
+        modo_usuario[user_id] = "voz"
+        bot.send_message(user_id, "✅ Modo activado: Ahora Sofía responderá con **Texto y Nota de Voz**.")
+        return
+
+    user_text_lower = user_text.lower()
     
     # Crear PDF
-    if "pdf" in user_text:
-        bot.send_chat_action(message.chat.id, 'upload_document')
+    if "pdf" in user_text_lower:
+        bot.send_chat_action(user_id, 'upload_document')
         archivo = "documento.pdf"
         generar_pdf(archivo, "Documento PDF", "Este es un archivo PDF generado automáticamente por Sofía.")
         with open(archivo, "rb") as f:
-            bot.send_document(message.chat.id, f)
+            bot.send_document(user_id, f)
         return
 
     # Crear Word
-    if "word" in user_text or "doc" in user_text or "crucigrama" in user_text:
-        bot.send_chat_action(message.chat.id, 'upload_document')
+    if "word" in user_text_lower or "doc" in user_text_lower or "crucigrama" in user_text_lower:
+        bot.send_chat_action(user_id, 'upload_document')
         archivo = "documento.docx"
         generar_word_texto(archivo, "Documento de Word", "Este es un documento de Word generado automáticamente por Sofía.")
         with open(archivo, "rb") as f:
-            bot.send_document(message.chat.id, f)
+            bot.send_document(user_id, f)
         return
         
     # Crear Excel
-    if "excel" in user_text or "tabla" in user_text:
-        bot.send_chat_action(message.chat.id, 'upload_document')
+    if "excel" in user_text_lower or "tabla" in user_text_lower:
+        bot.send_chat_action(user_id, 'upload_document')
         archivo = "tabla.xlsx"
         generar_excel(archivo)
         with open(archivo, "rb") as f:
-            bot.send_document(message.chat.id, f)
+            bot.send_document(user_id, f)
         return
 
-    # Descargar Música (Ej: "descarga coqueta de heredero")
-    if "descarga" in user_text or "cancion" in user_text or "busca la canción" in user_text:
-        bot.send_message(message.chat.id, "🔍 Buscando y descargando tu música...")
-        bot.send_chat_action(message.chat.id, 'upload_document')
+    # Descargar Música
+    if "descarga" in user_text_lower or "cancion" in user_text_lower or "busca la canción" in user_text_lower:
+        bot.send_message(user_id, "🔍 Buscando y descargando tu música...")
+        bot.send_chat_action(user_id, 'upload_document')
         
         try:
-            busqueda = user_text.replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
+            busqueda = user_text_lower.replace("descarga", "").replace("busca la canción", "").replace("cancion", "").strip()
             archivo_audio = descargar_musica(busqueda)
             
             with open(archivo_audio, "rb") as audio:
-                bot.send_audio(message.chat.id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
+                bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
             
             if os.path.exists(archivo_audio):
                 os.remove(archivo_audio)
@@ -193,36 +218,44 @@ def handle_conversation(message):
             bot.reply_to(message, "No pude descargar la canción. Intenta escribir el nombre exacto.")
             return
 
-    # Crear Imágenes (Ej: "dibuja un gato")
-    if "dibuja" in user_text or "crea una imagen" in user_text:
-        bot.send_message(message.chat.id, "🎨 Creando tu imagen...")
-        bot.send_chat_action(message.chat.id, 'upload_photo')
+    # Crear Imágenes
+    if "dibuja" in user_text_lower or "crea una imagen" in user_text_lower:
+        bot.send_message(user_id, "🎨 Creando tu imagen...")
+        bot.send_chat_action(user_id, 'upload_photo')
         
         try:
-            prompt = user_text.replace("crea una imagen de", "").replace("crea una imagen", "").replace("dibuja", "").strip()
+            prompt = user_text_lower.replace("crea una imagen de", "").replace("crea una imagen", "").replace("dibuja", "").strip()
             prompt_url = prompt.replace(" ", "%20")
             url_imagen = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&nologo=true"
-            bot.send_photo(message.chat.id, url_imagen, caption=f"Aquí tienes: {prompt.capitalize()}")
+            bot.send_photo(user_id, url_imagen, caption=f"Aquí tienes: {prompt.capitalize()}")
             return
         except Exception as e:
             print(f"Error al crear imagen: {e}")
             bot.reply_to(message, "No pude generar esa imagen, intenta con otra descripción.")
             return
 
-    # Respuesta por IA en NOTA DE VOZ (Conversación normal)
-    bot.send_chat_action(message.chat.id, 'record_audio')
-    respuesta_texto = consultar_ia_gratis(message.text)
+    # --- RESPUESTA DE LA IA ---
+    bot.send_chat_action(user_id, 'typing')
+    respuesta_texto = consultar_ia_gratis(user_text)
     
-    archivo_voz = "voz_sofia.mp3"
-    tts = gTTS(text=respuesta_texto, lang='es', tld='com')
-    tts.save(archivo_voz)
+    # 1. SIEMPRE envía el texto completo (para no perder análisis o resúmenes)
+    bot.send_message(user_id, respuesta_texto)
     
-    with open(archivo_voz, "rb") as voice:
-        bot.send_voice(message.chat.id, voice)
-        
-    if os.path.exists(archivo_voz):
-        os.remove(archivo_voz)
+    # 2. Solo genera y envía la voz si el usuario eligió "Modo Texto + Voz"
+    if modo_usuario.get(user_id) == "voz":
+        try:
+            bot.send_chat_action(user_id, 'record_audio')
+            archivo_voz = "voz_sofia.mp3"
+            tts = gTTS(text=respuesta_texto, lang='es', tld='com')
+            tts.save(archivo_voz)
+            
+            with open(archivo_voz, "rb") as voice:
+                bot.send_voice(user_id, voice)
+                
+            if os.path.exists(archivo_voz):
+                os.remove(archivo_voz)
+        except Exception as e:
+            print(f"Error generando audio: {e}")
 
 if __name__ == "__main__":
     bot.infinity_polling()
-    
