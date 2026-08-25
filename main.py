@@ -258,7 +258,11 @@ def handle_conversation(message):
         
         try:
             prompt = user_text_lower.replace("crea una imagen de", "").replace("crea una imagen", "").replace("dibuja", "").strip()
-            prompt_url = prompt.replace(" ", "%20")
+            
+            # Traducir a inglés con Cohere para alta precisión en la imagen
+            prompt_en = consultar_ia_gratis(f"Translate this text to English for an image generator prompt. Output ONLY the translation: {prompt}")
+            prompt_url = prompt_en.replace(" ", "%20")
+            
             url_imagen = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&nologo=true"
             bot.send_photo(user_id, url_imagen, caption=f"Aquí tienes: {prompt.capitalize()}")
             return
