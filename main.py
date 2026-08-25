@@ -1,7 +1,5 @@
 import os
-import urllib.request
 import urllib.parse
-import json
 import re
 import telebot
 from reportlab.lib.pagesizes import letter
@@ -11,6 +9,7 @@ from docx import Document
 import openpyxl
 from gtts import gTTS
 import cohere
+import yt_dlp
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
@@ -62,36 +61,34 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA DESDE MOTOR LIBRE DIRECTO ---
+# --- DESCARGAR MÚSICA CON YT-DLP (MÉTODO DEFINITIVO) ---
 def descargar_musica_robusta(busqueda):
     archivo_salida = "cancion.mp3"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
 
-    # Motor alternativo vía API pública de búsqueda de audio directo
-    url_api = f"https://saavn.dev/api/search/songs?query={urllib.parse.quote(busqueda)}"
-    req = urllib.request.Request(url_api, headers={'User-Agent': 'Mozilla/5.0'})
-    
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': 'cancion.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'quiet': True,
+        'no_warnings': True,
+    }
+
     try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            datos = json.loads(response.read().decode())
-            results = datos.get("data", {}).get("results", [])
-            if not results:
-                return None
-            
-            # Obtener el enlace directo de mayor calidad de descarga
-            download_urls = results[0].get("downloadUrl", [])
-            if not download_urls:
-                return None
-            
-            # Seleccionar la URL de mejor calidad
-            audio_url = download_urls[-1].get("url")
-            
-            # Descargar archivo MP3 directamente
-            urllib.request.urlretrieve(audio_url, archivo_salida)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([f"ytsearch1:{busqueda}"])
+        if os.path.exists(archivo_salida):
             return archivo_salida
     except Exception:
-        return None
+        pass
+
+    return None
 
 # --- MANEJADORES DE MENSAJES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -177,10 +174,10 @@ def handle_conversation(message):
                     bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
                 os.remove(archivo_audio)
             else:
-                bot.reply_to(message, "No se encontró la canción en el servidor.")
+                bot.reply_to(message, "No se pudo obtener el archivo de audio.")
             return
         except Exception as e:
-            bot.reply_to(message, "Error al procesar la descarga.")
+            bot.reply_to(message, "Error en el procesamiento del audio.")
             return
 
     if "dibuja" in user_text_lower or "crea una imagen" in user_text_lower:
@@ -211,4 +208,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-    
+                
