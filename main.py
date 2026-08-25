@@ -54,21 +54,28 @@ def consultar_ia_gratis(prompt_usuario):
         print(f"Error Cohere: {e}")
         return "Error al consultar la IA. Revisa tu COHERE_API_KEY."
 
-# --- GENERADORES DE ARCHIVOS ---
+# --- GENERADORES DE ARCHIVOS DINÁMICOS ---
 def generar_pdf(nombre_archivo, titulo, contenido):
     doc = SimpleDocTemplate(nombre_archivo, pagesize=letter)
     styles = getSampleStyleSheet()
+    
+    # Formatear saltos de línea para ReportLab
+    texto_limpio = contenido.replace('\n', '<br/>')
+    
     story = [
-        Paragraph(titulo, styles['Heading1']),
+        Paragraph(f"<b>{titulo}</b>", styles['Heading1']),
         Spacer(1, 12),
-        Paragraph(contenido, styles['BodyText'])
+        Paragraph(texto_limpio, styles['BodyText'])
     ]
     doc.build(story)
 
 def generar_word_texto(nombre_archivo, titulo, texto):
     doc = Document()
     doc.add_heading(titulo, level=1)
-    doc.add_paragraph(texto)
+    # Dividir párrafos para que se vea bien ordenado
+    for parrafo in texto.split('\n'):
+        if parrafo.strip():
+            doc.add_paragraph(parrafo.strip())
     doc.save(nombre_archivo)
 
 def generar_excel(nombre_archivo):
@@ -171,22 +178,44 @@ def handle_conversation(message):
 
     user_text_lower = user_text.lower()
     
-    # Crear PDF
+    # Crear PDF Inteligente
     if "pdf" in user_text_lower:
         bot.send_chat_action(user_id, 'upload_document')
-        archivo = "documento.pdf"
-        generar_pdf(archivo, "Documento PDF", "Este es un archivo PDF generado automáticamente por Sofía.")
+        tema = user_text_lower.replace("crea un pdf de", "").replace("crea un pdf sobre", "").replace("haz un pdf", "").replace("pdf", "").strip()
+        if not tema:
+            tema = "Información General"
+            
+        prompt_ia = f"Escribe una guía completa, clara y detallada sobre: {tema}."
+        contenido_ia = consultar_ia_gratis(prompt_ia)
+        
+        archivo = f"documento_{user_id}.pdf"
+        generar_pdf(archivo, f"Documento sobre {tema.capitalize()}", contenido_ia)
+        
         with open(archivo, "rb") as f:
-            bot.send_document(user_id, f)
+            bot.send_document(user_id, f, caption=f"📄 PDF listo sobre: *{tema.capitalize()}*", parse_mode="Markdown")
+        
+        if os.path.exists(archivo):
+            os.remove(archivo)
         return
 
-    # Crear Word
+    # Crear Word Inteligente
     if "word" in user_text_lower or "doc" in user_text_lower or "crucigrama" in user_text_lower:
         bot.send_chat_action(user_id, 'upload_document')
-        archivo = "documento.docx"
-        generar_word_texto(archivo, "Documento de Word", "Este es un documento de Word generado automáticamente por Sofía.")
+        tema = user_text_lower.replace("crea un word de", "").replace("crea un word sobre", "").replace("haz un word", "").replace("word", "").replace("doc", "").strip()
+        if not tema:
+            tema = "Documento Informativo"
+            
+        prompt_ia = f"Redacta un documento detallado, articulado y formal sobre: {tema}."
+        contenido_ia = consultar_ia_gratis(prompt_ia)
+        
+        archivo = f"documento_{user_id}.docx"
+        generar_word_texto(archivo, tema.capitalize(), contenido_ia)
+        
         with open(archivo, "rb") as f:
-            bot.send_document(user_id, f)
+            bot.send_document(user_id, f, caption=f"📝 Documento de Word listo: *{tema.capitalize()}*", parse_mode="Markdown")
+            
+        if os.path.exists(archivo):
+            os.remove(archivo)
         return
         
     # Crear Excel
@@ -245,7 +274,7 @@ def handle_conversation(message):
     if modo_usuario.get(user_id) == "voz":
         try:
             bot.send_chat_action(user_id, 'record_audio')
-            archivo_voz = "voz_sofia.mp3"
+            archivo_voz = f"voz_{user_id}.mp3"
             tts = gTTS(text=respuesta_texto, lang='es', tld='com')
             tts.save(archivo_voz)
             
@@ -259,3 +288,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
+        
