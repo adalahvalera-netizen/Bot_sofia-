@@ -12,7 +12,6 @@ import openpyxl
 from gtts import gTTS
 import yt_dlp
 import cohere
-from meeshyoutube import VideosSearch  # Búsqueda directa de YouTube
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
@@ -64,22 +63,18 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA DEFICITIVA ---
+# --- DESCARGAR MÚSICA ROBUSTA (YOUTUBE SEARCH + YT-DLP) ---
 def descargar_musica_robusta(busqueda):
     archivo_salida = "cancion.mp3"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
 
-    # 1. Si enviaron el texto, buscamos el primer enlace de YouTube
-    if "youtube.com" in busqueda or "youtu.be" in busqueda:
-        url_target = busqueda
+    # Si no es link directo, usa el motor de búsqueda interno de yt-dlp
+    if not ("youtube.com" in busqueda or "youtu.be" in busqueda):
+        query = f"ytsearch1:{busqueda}"
     else:
-        results = VideosSearch(busqueda, limit=1).result()
-        if not results.get('result'):
-            raise Exception("No se encontraron resultados para la búsqueda.")
-        url_target = results['result'][0]['link']
+        query = busqueda
 
-    # 2. Descargamos usando yt-dlp con bypass de cliente móvil (iOS/Android)
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': 'cancion.%(ext)s',
@@ -99,7 +94,7 @@ def descargar_musica_robusta(busqueda):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url_target])
+        ydl.download([query])
         
     return archivo_salida
 
@@ -219,4 +214,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
-            
+    
