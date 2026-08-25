@@ -9,49 +9,37 @@ from docx import Document
 import openpyxl
 from gtts import gTTS
 import yt_dlp
+import cohere
 
 # --- CONFIGURACIÓN ---
 TELEGRAM_TOKEN = "8993633836:AAGJJHm9_3bSksfglYXs_T_vveLU8ny1h9I"
-COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY", "").strip()
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+# Inicializar cliente de Cohere
+co = cohere.Client(COHERE_API_KEY) if COHERE_API_KEY else None
 
 # Diccionario para recordar el modo de cada usuario
 modo_usuario = {}
 
-# --- IA COHERE (CORREGIDA) ---
+# --- IA COHERE (SDK OFICIAL) ---
 def consultar_ia_gratis(prompt_usuario):
-    api_key_limpia = COHERE_API_KEY.strip()
-    if not api_key_limpia:
+    if not COHERE_API_KEY or not co:
         return "Falta agregar la variable COHERE_API_KEY en Railway."
     
     try:
-        url = "https://api.cohere.com/v1/chat"
         instrucciones = (
             "Eres Sofía, una asistente virtual amigable creada y desarrollada por Abdallah. "
             "Responde de forma útil, clara y natural en español."
         )
         
-        # Inclusión del parámetro obligatorio 'model' para Cohere v1/chat
-        payload = json.dumps({
-            "model": "command-r-plus",
-            "message": prompt_usuario,
-            "preamble": instrucciones
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            url, 
-            data=payload, 
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key_limpia}"
-            },
-            method="POST"
+        response = co.chat(
+            message=prompt_usuario,
+            preamble=instrucciones
         )
-
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data.get("text", "").strip()
+        
+        return response.text.strip()
 
     except Exception as e:
         print(f"Error Cohere: {e}")
@@ -62,7 +50,6 @@ def generar_pdf(nombre_archivo, titulo, contenido):
     doc = SimpleDocTemplate(nombre_archivo, pagesize=letter)
     styles = getSampleStyleSheet()
     
-    # Formatear saltos de línea para ReportLab
     texto_limpio = contenido.replace('\n', '<br/>')
     
     story = [
@@ -75,7 +62,6 @@ def generar_pdf(nombre_archivo, titulo, contenido):
 def generar_word_texto(nombre_archivo, titulo, texto):
     doc = Document()
     doc.add_heading(titulo, level=1)
-    # Dividir párrafos para que se vea bien ordenado
     for parrafo in texto.split('\n'):
         if parrafo.strip():
             doc.add_paragraph(parrafo.strip())
@@ -169,7 +155,6 @@ def handle_conversation(message):
     user_id = message.chat.id
     user_text = message.text
 
-    # Selección de modos por botones
     if user_text == "💬 Modo Solo Texto":
         modo_usuario[user_id] = "texto"
         bot.send_message(user_id, "✅ Modo activado: Sofía responderá solo en **Texto**.")
@@ -270,10 +255,8 @@ def handle_conversation(message):
     bot.send_chat_action(user_id, 'typing')
     respuesta_texto = consultar_ia_gratis(user_text)
     
-    # 1. Enviar siempre el texto plano primero
     bot.send_message(user_id, respuesta_texto)
     
-    # 2. Generar voz si el usuario lo activó por botón
     if modo_usuario.get(user_id) == "voz":
         try:
             bot.send_chat_action(user_id, 'record_audio')
@@ -291,3 +274,4 @@ def handle_conversation(message):
 
 if __name__ == "__main__":
     bot.infinity_polling()
+            
