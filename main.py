@@ -62,38 +62,44 @@ def generar_excel(nombre_archivo):
     ws.append(["Educación Física", "Activo", "Abdallah"])
     wb.save(nombre_archivo)
 
-# --- DESCARGAR MÚSICA VÍA PIPED API (EVITA BLOQUEOS DE YOUTUBE) ---
+# --- DESCARGAR MÚSICA DESDE MOTOR LIBRE ---
 def descargar_musica_robusta(busqueda):
     archivo_salida = "cancion.mp3"
     if os.path.exists(archivo_salida):
         os.remove(archivo_salida)
 
-    # Buscar en la API pública de Piped
-    url_busqueda = f"https://pipedapi.kavin.rocks/search?q={urllib.parse.quote(busqueda)}&filter=music"
-    req = urllib.request.Request(url_busqueda, headers={'User-Agent': 'Mozilla/5.0'})
+    instancias = [
+        "https://pipedapi.kavin.rocks",
+        "https://api.piped.private.coffee",
+        "https://pipedapi.lunar.icu"
+    ]
     
-    with urllib.request.urlopen(req) as response:
-        datos = json.loads(response.read().decode())
-        items = datos.get("items", [])
-        if not items:
-            raise Exception("No se encontraron resultados.")
-        video_id = items[0]["url"].split("v=")[-1]
+    for api_base in instancias:
+        try:
+            url_busqueda = f"{api_base}/search?q={urllib.parse.quote(busqueda)}&filter=music"
+            req = urllib.request.Request(url_busqueda, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                datos = json.loads(response.read().decode())
+                items = datos.get("items", [])
+                if not items:
+                    continue
+                video_id = items[0]["url"].split("v=")[-1]
 
-    # Obtener enlace de audio de Piped
-    url_stream = f"https://pipedapi.kavin.rocks/streams/{video_id}"
-    req_stream = urllib.request.Request(url_stream, headers={'User-Agent': 'Mozilla/5.0'})
-    
-    with urllib.request.urlopen(req_stream) as response:
-        datos_stream = json.loads(response.read().decode())
-        audio_streams = datos_stream.get("audioStreams", [])
-        if not audio_streams:
-            raise Exception("Sin stream de audio disponible.")
-        
-        url_download = audio_streams[0]["url"]
+            url_stream = f"{api_base}/streams/{video_id}"
+            req_stream = urllib.request.Request(url_stream, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req_stream, timeout=10) as response:
+                datos_stream = json.loads(response.read().decode())
+                audio_streams = datos_stream.get("audioStreams", [])
+                if not audio_streams:
+                    continue
+                url_download = audio_streams[0]["url"]
 
-    # Descargar el archivo directamente
-    urllib.request.urlretrieve(url_download, archivo_salida)
-    return archivo_salida
+            urllib.request.urlretrieve(url_download, archivo_salida)
+            return archivo_salida
+        except Exception:
+            continue
+
+    return None
 
 # --- MANEJADORES DE MENSAJES ---
 @bot.message_handler(commands=['start', 'help', 'modo'])
@@ -179,10 +185,10 @@ def handle_conversation(message):
                     bot.send_audio(user_id, audio, title=busqueda.capitalize(), performer="Sofía Bot")
                 os.remove(archivo_audio)
             else:
-                bot.reply_to(message, "No se pudo procesar el archivo de audio.")
+                bot.reply_to(message, "No pude procesar la descarga en este momento.")
             return
         except Exception as e:
-            bot.reply_to(message, f"Error en la descarga: {str(e)[:50]}")
+            bot.reply_to(message, "Ocurrió un error al descargar la música.")
             return
 
     if "dibuja" in user_text_lower or "crea una imagen" in user_text_lower:
